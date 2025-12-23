@@ -12,14 +12,12 @@ import gsap from "gsap";
 const router = useRouter();
 const canvasRef = ref(null);
 
-// --- MAPPING ASSETS ---
 const modelAssets = {
   sun: "sun.glb",
   earth: "earth.glb",
   moon: "moon.glb",
 };
 
-// --- CONFIGURATION SCENES ---
 const scenes = [
   {
     id: "solar-eclipse",
@@ -27,16 +25,16 @@ const scenes = [
     subtitle: "THE GREAT SHADOW",
     description:
       "Bulan bergerak mengelilingi Bumi dan menghalangi cahaya Matahari. Perhatikan bayangan umbra jatuh ke permukaan Bumi.",
-    camPos: { x: 0, y: 0, z: 25 },
+    camPos: { x: 0, y: 5, z: 30 },
     objects: [
-      { type: "sun", size: 5, pos: { x: -50, y: 10, z: -50 } },
-      { type: "earth", size: 4.5, pos: { x: 0, y: 0, z: 0 } },
+      { type: "sun", size: 4, pos: { x: -35, y: 2, z: -25 } },
+      { type: "earth", size: 3.5, pos: { x: 0, y: 0, z: 0 } },
       {
         type: "moon",
-        size: 1.2,
+        size: 1,
         pos: { x: 0, y: 0, z: 0 },
         orbit: true,
-        radius: 12,
+        radius: 10,
         startAngle: 2.5,
       },
     ],
@@ -47,16 +45,16 @@ const scenes = [
     subtitle: "BLOOD MOON",
     description:
       "Bumi berada tepat di antara Matahari dan Bulan. Bulan masuk ke dalam bayangan Bumi (Umbra) dan menjadi gelap/kemerahan.",
-    camPos: { x: 5, y: 5, z: 40 },
+    camPos: { x: 0, y: 8, z: 35 },
     objects: [
-      { type: "sun", size: 6, pos: { x: -60, y: 0, z: 0 } },
-      { type: "earth", size: 4, pos: { x: 0, y: 0, z: 0 } },
+      { type: "sun", size: 4, pos: { x: -35, y: 2, z: -25 } },
+      { type: "earth", size: 3.5, pos: { x: 0, y: 0, z: 0 } },
       {
         type: "moon",
-        size: 1,
+        size: 0.9,
         pos: { x: 0, y: 0, z: 0 },
         orbit: true,
-        radius: 20,
+        radius: 18,
         startAngle: 0,
       },
     ],
@@ -67,11 +65,11 @@ const scenes = [
     subtitle: "AXIAL TILT 23.5°",
     description:
       "Bumi mengelilingi Matahari dengan poros miring tetap. Geser slider untuk melihat bagaimana kutub utara/selatan bergantian mendekati Matahari.",
-    camPos: { x: 0, y: 40, z: 60 },
+    camPos: { x: 0, y: 35, z: 50 },
     logic: "orbit-sun",
     objects: [
-      { type: "sun", size: 8, pos: { x: 0, y: 0, z: 0 } },
-      { type: "earth", size: 3, pos: { x: 30, y: 0, z: 0 }, tilted: true },
+      { type: "sun", size: 6, pos: { x: 0, y: 0, z: 0 } },
+      { type: "earth", size: 2.5, pos: { x: 25, y: 0, z: 0 }, tilted: true },
     ],
   },
   {
@@ -82,8 +80,8 @@ const scenes = [
       "Bumi berputar pada porosnya. Perhatikan garis batas terang dan gelap (terminator). Bagian yang menghadap Matahari mengalami siang.",
     camPos: { x: 0, y: 0, z: 18 },
     objects: [
-      { type: "sun", size: 2, pos: { x: 50, y: 10, z: 20 } },
-      { type: "earth", size: 5, pos: { x: 0, y: 0, z: 0 }, rotating: true },
+      { type: "sun", size: 2, pos: { x: 40, y: 8, z: 15 } },
+      { type: "earth", size: 4.5, pos: { x: 0, y: 0, z: 0 }, rotating: true },
     ],
   },
   {
@@ -92,20 +90,18 @@ const scenes = [
     subtitle: "COSMIC TRAVELERS",
     description:
       "Sekumpulan komet es melintas. Ekor komet terbentuk oleh angin matahari dan selalu menjauhi arah Matahari.",
-    camPos: { x: 0, y: 10, z: 50 },
+    camPos: { x: 0, y: 15, z: 45 },
     logic: "comet-shower",
     objects: [
-      { type: "sun", size: 0, pos: { x: -80, y: 0, z: 0 } },
-      { type: "earth", size: 6, pos: { x: 0, y: -15, z: 0 } },
+      { type: "sun", size: 0, pos: { x: -70, y: 0, z: 0 } },
+      { type: "earth", size: 3.5, pos: { x: 0, y: 0, z: 0 } },
     ],
   },
 ];
 
-// --- STATE ---
 const activeIndex = ref(0);
 const sliderValue = ref(50);
 
-// --- THREE VARS ---
 let scene, camera, renderer, controls, composer;
 let starSystem;
 let entityGroup = new THREE.Group();
@@ -113,7 +109,6 @@ let cometGroup = new THREE.Group();
 let animationFrameId;
 const loader = new GLTFLoader();
 
-// --- INIT ---
 const initThree = () => {
   const w = window.innerWidth;
   const h = window.innerHeight;
@@ -132,7 +127,6 @@ const initThree = () => {
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
-  // POST PROCESSING
   const renderScene = new RenderPass(scene, camera);
   const bloomPass = new UnrealBloomPass(
     new THREE.Vector2(w, h),
@@ -149,8 +143,9 @@ const initThree = () => {
   controls.dampingFactor = 0.05;
   controls.minDistance = 10;
   controls.maxDistance = 200;
+  controls.target.set(0, 0, 0);
 
-  const ambientLight = new THREE.AmbientLight(0xffffff, 0.1);
+  const ambientLight = new THREE.AmbientLight(0xffffff, 0.15);
   scene.add(ambientLight);
 
   createStarfield();
@@ -162,7 +157,6 @@ const initThree = () => {
   window.addEventListener("resize", onResize);
 };
 
-// --- SCENE LOADER ---
 const loadScene = (index) => {
   entityGroup.clear();
   cometGroup.clear();
@@ -176,7 +170,14 @@ const loadScene = (index) => {
     duration: 1.5,
     ease: "power2.inOut",
   });
-  controls.target.set(0, 0, 0);
+
+  gsap.to(controls.target, {
+    x: 0,
+    y: 0,
+    z: 0,
+    duration: 1.5,
+    ease: "power2.inOut",
+  });
 
   if (config.logic === "comet-shower") {
     createCometShower(config);
@@ -194,7 +195,7 @@ const createObject = (conf) => {
 
   if (conf.type === "sun") {
     if (conf.size > 0) {
-      const light = new THREE.PointLight(0xffffff, 2.5, 500);
+      const light = new THREE.PointLight(0xffffff, 3, 500);
       light.castShadow = true;
       light.shadow.bias = -0.0005;
       light.shadow.mapSize.width = 2048;
@@ -328,7 +329,6 @@ const createStarfield = () => {
   scene.add(starSystem);
 };
 
-// --- ANIMATION LOOP ---
 const animate = () => {
   animationFrameId = requestAnimationFrame(animate);
   controls.update();
@@ -338,7 +338,7 @@ const animate = () => {
   const currentScene = scenes[activeIndex.value];
 
   if (currentScene.logic === "comet-shower") {
-    const sunPos = new THREE.Vector3(-80, 0, 0);
+    const sunPos = new THREE.Vector3(-70, 0, 0);
     cometGroup.children.forEach((c) => {
       c.position.add(c.userData.velocity);
       c.lookAt(sunPos);
@@ -356,7 +356,7 @@ const animate = () => {
       (c) => c.userData.type === "earth"
     );
     if (earthObj) {
-      const r = 35;
+      const r = 30;
       const angle = t * Math.PI * 2;
 
       earthObj.position.x = Math.cos(angle) * r;
