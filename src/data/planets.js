@@ -90,6 +90,28 @@ export const solarData = [
     ]
   },
   {
+    id: 9,
+    name: "BULAN",
+    file: "moon.glb",
+    color: "#9ea7b0",
+    desc: "Satelit Alami Bumi",
+    title: "Bulan",
+    overview: "Bulan adalah satelit alami Bumi, terbentuk sekitar 4,5 miliar tahun lalu. Bulan mempengaruhi pasang surut laut dan ritme beberapa proses di Bumi. Permukaannya dipenuhi kawah dan lautan basal yang disebut 'maria'.",
+    structure: "Bulan memiliki inti kecil (besi), mantel batuan, dan kerak tipis. Tidak memiliki atmosfer yang signifikan sehingga permukaannya tidak mengalami erosi atmosferik.",
+    atmosphere: "Hampir tidak memiliki atmosfer; hanya eksosfer tipis sehingga tidak ada cuaca seperti di Bumi.",
+    quickStats: [
+      { label: "Diameter", value: "3.474 km" },
+      { label: "Jarak dr Bumi", value: "384.400 km" },
+      { label: "Rotasi", value: "27.3 Hari" },
+      { label: "Gravitasi", value: "0.27x Bumi" }
+    ],
+    funFacts: [
+      "Bulan kemungkinan terbentuk akibat tabrakan besar antara Bumi dan objek seukuran Mars.",
+      "Sisi jauh Bulan belum pernah diinjak oleh manusia hingga kini hanya sedikit dieksplorasi secara langsung.",
+      "Bulan berperan penting dalam stabilisasi kemiringan sumbu Bumi dan pasang surut laut."
+    ]
+  },
+  {
     id: 4,
     name: "MARS",
     file: "mars.glb",

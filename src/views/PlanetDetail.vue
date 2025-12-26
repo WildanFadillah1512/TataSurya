@@ -5,6 +5,7 @@ import * as THREE from 'three'
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import gsap from 'gsap'
+import speech from '../utils/speech'
 
 // --- IMPORT DATA ---
 import { solarData } from '../data/planets.js'
@@ -24,9 +25,21 @@ const planetData = computed(() => {
 // --- STATE ---
 const isARMode = ref(false)
 const isSpeaking = ref(false)
+const speechAvailable = ref(false)
+const voiceStatusMsg = ref('')
+const enableSpeech = async () => {
+    try {
+        voiceStatusMsg.value = 'Memuat suara...'
+        await speech.initVoices()
+        const c = speech.getVoicesCount()
+        voiceStatusMsg.value = c ? `Suara siap (${c})` : 'Tidak ada suara terdeteksi'
+        speechAvailable.value = speech.isAvailable() && c > 0
+    } catch (e) {
+        voiceStatusMsg.value = 'Gagal memuat suara'
+        console.warn('[Speech] enable failed', e)
+    }
+}
 const currentFactIdx = ref(0)
-const showQuiz = ref(false)
-const quizAnswered = ref(null)
 const cameraError = ref(null)
 
 // Typewriter State
@@ -36,26 +49,44 @@ let typingInterval = null
 // --- 3D VARS ---
 let scene, camera, renderer, controls, planetMesh, starMesh
 let animationFrame
+const loader = new GLTFLoader()
+// Objects and timeline used for event demos (gerhana, musim, komet)
+let eventObjects = []
+let eventTimeline = null
+const currentEvent = computed(() => route.query.event || null)
+
+const cleanupScene = () => {
+    // stop any running timelines and animations
+    try { if (eventTimeline) { eventTimeline.kill(); eventTimeline = null } } catch(e){}
+    try { if (animationFrame) cancelAnimationFrame(animationFrame) } catch(e){}
+    try { if (controls) controls.dispose() } catch(e){}
+    try { if (renderer) { renderer.dispose(); renderer = null } } catch(e){}
+    try { if (scene) { scene.clear(); scene = null } } catch(e){}
+
+    // remove event objects
+    eventObjects.forEach(o => { try { scene && scene.remove(o) } catch(e){} })
+    eventObjects = []
+} 
 
 // --- AUDIO ASSISTANT ---
-const speak = (text) => {
-    if ('speechSynthesis' in window) {
-        window.speechSynthesis.cancel()
-        const utterance = new SpeechSynthesisUtterance(text)
-        utterance.lang = 'id-ID'
-        utterance.rate = 1.0; utterance.pitch = 1.0
-        utterance.onstart = () => { isSpeaking.value = true }
-        utterance.onend = () => { isSpeaking.value = false }
-        window.speechSynthesis.speak(utterance)
+const speak = async (text) => {
+    if (!speech.isAvailable()) return
+    try {
+        isSpeaking.value = true
+        await speech.speak(text, { lang: 'id-ID', rate: 1.0, pitch: 1.0 })
+    } catch (e) {
+        console.warn('[Speech] speak error', e)
+    } finally {
+        isSpeaking.value = false
     }
 }
 
-const toggleAudio = () => {
+const toggleAudio = async () => {
     if (isSpeaking.value) {
-        window.speechSynthesis.cancel(); isSpeaking.value = false
+        speech.cancel(); isSpeaking.value = false
     } else {
         const fact = planetData.value.funFacts[currentFactIdx.value]
-        speak(fact)
+        try { await speak(fact) } catch(e) { console.warn(e) }
     }
 }
 
@@ -126,20 +157,69 @@ const initScene = () => {
 
     addFunStars()
 
-    const loader = new GLTFLoader()
     const modelPath = `/textures/${planetData.value.file}`
-    loader.load(modelPath, (gltf) => {
-        planetMesh = gltf.scene
-        const box = new THREE.Box3().setFromObject(planetMesh)
-        const size = box.getSize(new THREE.Vector3()).length()
-        const scale = 5 / size 
-        planetMesh.scale.set(scale, scale, scale)
-        scene.add(planetMesh)
-        
-        // Animasi muncul
-        planetMesh.scale.set(0,0,0)
-        gsap.to(planetMesh.scale, { x: scale, y: scale, z: scale, duration: 1.5, ease: "elastic.out(1, 0.5)" })
-    })
+    loader.load(
+        modelPath,
+        (gltf) => {
+            planetMesh = gltf.scene
+            const box = new THREE.Box3().setFromObject(planetMesh)
+            const size = box.getSize(new THREE.Vector3()).length()
+            const scale = 5 / size 
+            planetMesh.scale.set(scale, scale, scale)
+            scene.add(planetMesh)
+
+            // Animasi muncul
+            planetMesh.scale.set(0,0,0)
+            gsap.to(planetMesh.scale, { x: scale, y: scale, z: scale, duration: 1.5, ease: "elastic.out(1, 0.5)", onComplete: () => {
+                // setelah planet muncul, jalankan demo event jika ada
+                if (currentEvent.value) {
+                    applyEventEffect(currentEvent.value)
+                }
+            }})
+        },
+        undefined,
+        (err) => {
+            console.warn(`Gagal load GLTF ${modelPath}`, err)
+            // fallback: try loading as simple textured sphere (use texture file with same base name)
+            const base = planetData.value.file.replace(/\.glb$/i, '')
+            const texPathJpg = `/textures/${base}.jpg`
+            const texPathPng = `/textures/${base}.png`
+            const texLoader = new THREE.TextureLoader()
+            texLoader.load(
+                texPathJpg,
+                (tex) => {
+                    const radius = 3
+                    planetMesh = new THREE.Mesh(new THREE.SphereGeometry(radius, 32, 32), new THREE.MeshStandardMaterial({ map: tex }))
+                    scene.add(planetMesh)
+                    planetMesh.scale.set(0,0,0)
+                    gsap.to(planetMesh.scale, { x: 1, y: 1, z: 1, duration: 1.5, ease: "elastic.out(1, 0.5)", onComplete: () => { if (currentEvent.value) applyEventEffect(currentEvent.value) } })
+                },
+                undefined,
+                () => {
+                    // try png
+                    texLoader.load(
+                        texPathPng,
+                        (tex2) => {
+                            const radius = 3
+                            planetMesh = new THREE.Mesh(new THREE.SphereGeometry(radius, 32, 32), new THREE.MeshStandardMaterial({ map: tex2 }))
+                            scene.add(planetMesh)
+                            planetMesh.scale.set(0,0,0)
+                            gsap.to(planetMesh.scale, { x: 1, y: 1, z: 1, duration: 1.5, ease: "elastic.out(1, 0.5)", onComplete: () => { if (currentEvent.value) applyEventEffect(currentEvent.value) } })
+                        },
+                        undefined,
+                        () => {
+                            // final fallback: plain sphere with color
+                            const radius = 3
+                            planetMesh = new THREE.Mesh(new THREE.SphereGeometry(radius, 32, 32), new THREE.MeshStandardMaterial({ color: planetData.value.color || 0x888888 }))
+                            scene.add(planetMesh)
+                            planetMesh.scale.set(0,0,0)
+                            gsap.to(planetMesh.scale, { x: 1, y: 1, z: 1, duration: 1.5, ease: "elastic.out(1, 0.5)", onComplete: () => { if (currentEvent.value) applyEventEffect(currentEvent.value) } })
+                        }
+                    )
+                }
+            )
+        }
+    )
 
     animate()
     window.addEventListener('resize', handleResize)
@@ -181,12 +261,12 @@ const toggleAR = async () => {
             
             isARMode.value = true
             cameraError.value = null
-            speak("Mode AR aktif. Silakan zoom dan putar planet dengan jari Anda.")
+            try { await speak("Mode AR aktif. Silakan zoom dan putar planet dengan jari Anda.") } catch(e) { console.warn(e) }
 
         } catch (err) {
             console.error(err)
             cameraError.value = "Izin kamera ditolak."
-            speak("Gagal akses kamera.")
+            try { await speak("Gagal akses kamera.") } catch(e) { console.warn(e) }
         }
     } else {
         stopAR()
@@ -224,30 +304,151 @@ const nextFact = () => {
     currentFactIdx.value = (currentFactIdx.value + 1) % planetData.value.funFacts.length
     // Animasi putar cepat saat ganti fakta
     if(planetMesh) gsap.to(planetMesh.rotation, {y: planetMesh.rotation.y + Math.PI*2, duration: 1.5, ease: "power2.inOut"})
-    window.speechSynthesis.cancel(); isSpeaking.value = false
+    try { speech.cancel() } catch(e) { console.warn('[Speech] cancel failed', e) }
+    isSpeaking.value = false
 }
 
-const answerQuiz = (userAns) => {
-    const isCorrect = userAns === planetData.value.quiz.a
-    quizAnswered.value = isCorrect ? 'correct' : 'wrong'
-    speak((isCorrect ? "Benar! " : "Salah. ") + planetData.value.quiz.explain)
-}
+
 
 const goBack = () => {
     stopAR()
     router.push('/explore')
 }
 
-onMounted(() => { initScene() })
+onMounted(() => { 
+    initScene()
+    try {
+        speechAvailable.value = speech.isAvailable()
+        if (speechAvailable.value) {
+            speech.initVoices()
+                .then(() => {
+                    const c = speech.getVoicesCount()
+                    speechAvailable.value = c > 0
+                    voiceStatusMsg.value = c ? `Suara siap (${c})` : 'Tidak ada suara terdeteksi'
+                    console.log('[Speech] warm-up voices:', c)
+                })
+                .catch(e => { console.warn('[Speech] init failed', e); voiceStatusMsg.value = 'Gagal memuat suara' })
+        } else {
+            voiceStatusMsg.value = 'Speech tidak didukung di browser ini'
+        }
+    } catch(e) { console.warn('[Speech] check failed', e); voiceStatusMsg.value = 'Gagal periksa kemampuan suara' }
+})
+
+const applyEventEffect = async (eventType) => {
+    // clear previous event objects
+    eventObjects.forEach(o => { try { scene.remove(o) } catch(e){} })
+    eventObjects = []
+    try { if (eventTimeline) { eventTimeline.kill(); eventTimeline = null } } catch(e){}
+
+    if (!scene || !planetMesh) return
+
+    if (eventType === 'solar-eclipse' || eventType === 'lunar-eclipse') {
+        // compute a base scale from the planet so objects keep consistent visual size
+        const planetBox = new THREE.Box3().setFromObject(planetMesh)
+        const planetSizeVec = planetBox.getSize(new THREE.Vector3())
+        const base = Math.max(planetSizeVec.length(), 5)
+
+        // load sun and moon (fallback to simple spheres)
+        const sunObj = await new Promise(res => loader.load('/textures/sun.glb', g => res(g.scene), undefined, () => res(null)))
+        const moonObj = await new Promise(res => loader.load('/textures/moon.glb', g => res(g.scene), undefined, () => res(null)))
+
+        // create/scale sun relative to planet
+        let sun
+        if (sunObj) {
+            sun = sunObj
+            const box = new THREE.Box3().setFromObject(sun)
+            const size = box.getSize(new THREE.Vector3()).length() || 1
+            const desired = base * 0.9
+            const sScale = desired / size
+            sun.scale.set(sScale, sScale, sScale)
+        } else {
+            sun = new THREE.Mesh(
+                new THREE.SphereGeometry(base * 0.9, 32, 32),
+                new THREE.MeshStandardMaterial({ color: 0xFDB813, emissive: 0xffffaa, emissiveIntensity: 1.8, roughness: 0.25 })
+            )
+        }
+        sun.position.set(-base * 2.5, 0, -base * 0.15)
+        sun.castShadow = false
+
+        // create/scale moon relative to planet
+        let moon
+        if (moonObj) {
+            moon = moonObj
+            const box = new THREE.Box3().setFromObject(moon)
+            const size = box.getSize(new THREE.Vector3()).length() || 1
+            const desired = Math.max(0.12, base * 0.25)
+            const mScale = desired / size
+            moon.scale.set(mScale, mScale, mScale)
+        } else {
+            moon = new THREE.Mesh(
+                new THREE.SphereGeometry(Math.max(0.12, base * 0.25), 16, 16),
+                new THREE.MeshStandardMaterial({ color: 0x999999 })
+            )
+        }
+        const orbitRadius = base * 1.6
+        moon.position.set(orbitRadius, 0, 0)
+
+        scene.add(sun); scene.add(moon)
+        eventObjects.push(sun, moon)
+
+        // orbit animation using planet-based radius
+        eventTimeline = gsap.timeline({ repeat: -1 })
+        eventTimeline.to(moon.position, { x: -orbitRadius, z: 0, duration: 3, ease: 'power1.inOut' })
+                    .to(moon.position, { x: orbitRadius, z: 0, duration: 3, ease: 'power1.inOut' })
+
+        // dim ambient light briefly at alignment
+        const amb = scene.children.find(c => c.type === 'AmbientLight')
+        if (amb) eventTimeline.to(amb, { intensity: 0.05, duration: 0.6, yoyo: true, repeat: 1 }, 2)
+
+        speak('Menampilkan simulasi gerhana. Geser atau putar untuk melihat dari sudut berbeda.')
+    }
+    else if (eventType === 'seasons') {
+        // tilt planet and slowly move sun light
+        planetMesh.rotation.z = THREE.MathUtils.degToRad(23.5)
+        const sunLight = scene.children.find(c => c.type === 'DirectionalLight')
+        if (sunLight) eventTimeline = gsap.to(sunLight.position, { x: 12, z: 8, duration: 6, yoyo: true, repeat: -1, ease: 'sine.inOut' })
+        speak('Menampilkan pergantian musim. Perhatikan kemiringan poros bumi.')
+    }
+    else if (eventType === 'day-night') {
+        eventTimeline = gsap.to(planetMesh.rotation, { y: planetMesh.rotation.y + Math.PI * 2, duration: 8, repeat: -1, ease: 'linear' })
+        speak('Menampilkan rotasi harian: perhatikan batas siang dan malam.')
+    }
+    else if (eventType === 'comet') {
+        // scale comets relative to planet so they feel proportional on detail view
+        const planetBox = new THREE.Box3().setFromObject(planetMesh)
+        const base = Math.max(planetBox.getSize(new THREE.Vector3()).length(), 5)
+        const count = 20
+        for (let i=0; i<count; i++) {
+            const radius = Math.max(0.03, base * 0.03)
+            const c = new THREE.Mesh(new THREE.SphereGeometry(radius, 6, 6), new THREE.MeshBasicMaterial({ color: 0xffffff }))
+            c.position.set(base * 4 + Math.random() * base * 3, (Math.random() - 0.5) * base * 2, (Math.random() - 0.5) * base * 2)
+            scene.add(c); eventObjects.push(c)
+            gsap.to(c.position, {
+                x: -base * 4,
+                duration: 3 + Math.random() * 5,
+                repeat: -1,
+                ease: 'linear',
+                delay: Math.random() * 3,
+                onRepeat() { this.targets()[0].position.set(base * 4 + Math.random() * base * 2, (Math.random() - 0.5) * base * 2, (Math.random() - 0.5) * base * 2) }
+            })
+        }
+        speak('Menampilkan hujan komet. Perhatikan lintasan acak dan cepat.')
+    } else {
+        // unknown event: do nothing
+    }
+}
+
+// re-run event when query changes
+watch(currentEvent, (val) => {
+    if (val && planetMesh) applyEventEffect(val)
+})
 
 onUnmounted(() => {
     window.removeEventListener('resize', handleResize)
-    cancelAnimationFrame(animationFrame)
     stopAR()
     if(typingInterval) clearInterval(typingInterval)
-    window.speechSynthesis.cancel()
-    if (scene) scene.clear()
-    if (renderer) renderer.dispose()
+    try { speech.cancel() } catch(e) { console.warn('[Speech] cancel failed', e) }
+    cleanupScene()
 })
 
 watch(() => route.params.id, () => {
@@ -257,14 +458,14 @@ watch(() => route.params.id, () => {
 </script>
 
 <template>
-  <div class="relative w-full h-screen bg-black overflow-hidden font-sans select-none text-white">
+  <div class="relative w-full h-screen bg-black overflow-hidden font-sans select-none text-white pointer-events-auto">
     
     <video ref="videoRef" 
            class="absolute inset-0 w-full h-full object-cover z-0 transition-opacity duration-500"
            :class="isARMode ? 'opacity-100' : 'opacity-0 pointer-events-none'"
            playsinline muted autoplay></video>
 
-    <div ref="containerRef" class="absolute inset-0 z-10 cursor-move active:cursor-grabbing"></div>
+    <div ref="containerRef" class="absolute inset-0 z-10 cursor-move active:cursor-grabbing pointer-events-auto"></div>
 
     <div class="absolute inset-0 z-20 flex flex-col pointer-events-none">
         
@@ -304,8 +505,8 @@ watch(() => route.params.id, () => {
                 </span>
             </button>
 
-            <button @click="toggleAudio" class="w-12 h-12 bg-black/40 backdrop-blur-md border border-white/20 rounded-xl flex items-center justify-center transition-all"
-                :class="isSpeaking ? 'border-green-500 text-green-400 shadow-[0_0_15px_rgba(34,197,94,0.4)]' : 'hover:border-yellow-400 hover:text-yellow-300'">
+            <button @click="toggleAudio" :disabled="!speechAvailable" class="w-12 h-12 bg-black/40 backdrop-blur-md border border-white/20 rounded-xl flex items-center justify-center transition-all"
+                :class="isSpeaking ? 'border-green-500 text-green-400 shadow-[0_0_15px_rgba(34,197,94,0.4)] pointer-events-auto' : (!speechAvailable ? 'opacity-50 cursor-not-allowed' : 'hover:border-yellow-400 hover:text-yellow-300')">
                 <span class="text-xl">{{ isSpeaking ? '🔊' : '🔈' }}</span>
                 <div v-if="isSpeaking" class="absolute inset-0 flex items-center justify-center gap-[2px] opacity-30">
                      <div class="w-1 bg-green-400 animate-wave h-3"></div>
@@ -313,10 +514,13 @@ watch(() => route.params.id, () => {
                      <div class="w-1 bg-green-400 animate-wave h-2 delay-150"></div>
                 </div>
             </button>
+            <div class="mt-2 text-xs text-right text-slate-400 pointer-events-auto">
+                <div class="whitespace-nowrap">{{ voiceStatusMsg }}</div>
+                <button v-if="!speechAvailable" @click="enableSpeech" class="mt-1 text-xs px-2 py-1 bg-white/5 rounded hover:bg-white/10">Aktifkan Suara</button>
+            </div>
         </div>
 
-        <div class="w-full pointer-events-auto transition-all duration-500 flex justify-center px-4 pb-6 md:pb-10"
-             :class="[showQuiz ? 'translate-y-[150%] opacity-0' : 'translate-y-0 opacity-100']">
+        <div class="w-full pointer-events-auto transition-all duration-500 flex justify-center px-4 pb-6 md:pb-10 translate-y-0 opacity-100">
             
             <div class="relative w-full max-w-4xl group">
                 <div class="absolute -inset-[1px] bg-gradient-to-r from-cyan-500 via-purple-500 to-cyan-500 rounded-2xl opacity-50 blur-sm animate-gradient-xy" :class="isARMode ? 'opacity-20' : 'opacity-50'"></div>
@@ -354,7 +558,7 @@ watch(() => route.params.id, () => {
                             <button @click="nextFact" class="flex-1 md:flex-none relative overflow-hidden bg-cyan-600/20 hover:bg-cyan-600/40 border border-cyan-500/50 text-cyan-300 px-6 py-3 rounded text-sm font-bold tracking-wider uppercase transition-all active:scale-95 group">
                                 <span class="relative z-10 flex items-center justify-center gap-2">NEXT <span class="text-xs">⇥</span></span>
                             </button>
-                            <button @click="showQuiz = true" class="flex-1 md:flex-none relative overflow-hidden bg-fuchsia-600/20 hover:bg-fuchsia-600/40 border border-fuchsia-500/50 text-fuchsia-300 px-6 py-3 rounded text-sm font-bold tracking-wider uppercase transition-all active:scale-95">
+                            <button @click.stop="router.push({ name: 'quiz', params: { id: planetData.id } })" class="flex-1 md:flex-none relative overflow-hidden bg-fuchsia-600/20 hover:bg-fuchsia-600/40 border border-fuchsia-500/50 text-fuchsia-300 px-6 py-3 rounded text-sm font-bold tracking-wider uppercase transition-all active:scale-95">
                                 <span class="relative z-10 flex items-center justify-center gap-2">QUIZ <span class="text-xs">?</span></span>
                             </button>
                         </div>
@@ -363,35 +567,7 @@ watch(() => route.params.id, () => {
             </div>
         </div>
 
-        <div v-if="showQuiz" class="absolute inset-0 z-50 flex items-end md:items-center justify-center pointer-events-none">
-            <div class="absolute inset-0 bg-black/80 backdrop-blur-sm pointer-events-auto transition-opacity" @click="showQuiz = false"></div>
-            <div class="bg-gray-900 border-t-2 md:border-2 border-fuchsia-500/50 w-full md:w-[600px] rounded-t-3xl md:rounded-3xl p-6 md:p-8 shadow-[0_0_50px_rgba(192,38,211,0.3)] relative animate-slide-up pointer-events-auto pb-safe overflow-hidden">
-                <button @click="showQuiz = false; quizAnswered = null" class="absolute top-4 right-4 text-gray-400 hover:text-white transition text-xl">✕</button>
-                <div class="relative z-10">
-                    <div class="text-center mb-6">
-                        <span class="text-fuchsia-400 font-mono text-xs tracking-[0.3em] uppercase border-b border-fuchsia-500/30 pb-1">Quiz Protocol</span>
-                        <h3 class="text-xl md:text-2xl font-bold mt-4 text-white leading-relaxed">{{ planetData.quiz.q }}</h3>
-                    </div>
-                    <div v-if="!quizAnswered" class="grid grid-cols-2 gap-4">
-                        <button @click="answerQuiz(true)" class="bg-gradient-to-br from-gray-800 to-gray-900 hover:from-green-900/50 border border-white/10 hover:border-green-500 p-6 rounded-xl transition-all group">
-                            <div class="text-2xl mb-2 group-hover:scale-110">👍</div>
-                            <div class="font-bold text-gray-300 group-hover:text-green-400">BENAR</div>
-                        </button>
-                        <button @click="answerQuiz(false)" class="bg-gradient-to-br from-gray-800 to-gray-900 hover:from-red-900/50 border border-white/10 hover:border-red-500 p-6 rounded-xl transition-all group">
-                            <div class="text-2xl mb-2 group-hover:scale-110">👎</div>
-                            <div class="font-bold text-gray-300 group-hover:text-red-400">SALAH</div>
-                        </button>
-                    </div>
-                    <div v-else class="text-center animate-fade-in">
-                        <h4 class="text-xl font-bold mb-2" :class="quizAnswered === 'correct' ? 'text-green-400' : 'text-red-400'">
-                            {{ quizAnswered === 'correct' ? 'ACCESS GRANTED' : 'ACCESS DENIED' }}
-                        </h4>
-                        <p class="text-gray-300 text-sm mb-6">{{ planetData.quiz.explain }}</p>
-                        <button @click="showQuiz = false; quizAnswered = null" class="w-full bg-white text-black font-bold py-3 rounded hover:bg-gray-200 transition">LANJUT</button>
-                    </div>
-                </div>
-            </div>
-        </div>
+
 
     </div>
   </div>

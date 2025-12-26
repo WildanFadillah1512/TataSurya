@@ -9,6 +9,7 @@ import { RenderPass } from "three/examples/jsm/postprocessing/RenderPass.js";
 import { UnrealBloomPass } from "three/examples/jsm/postprocessing/UnrealBloomPass.js";
 import gsap from "gsap";
 
+// Pastikan file data Anda benar ada di path ini
 import { solarData as rawContentData } from "../data/planets.js";
 
 // --- KONFIGURASI 3D ---
@@ -48,6 +49,22 @@ let warpSpeed = 0;
 const raycaster = new THREE.Raycaster();
 const mouse = new THREE.Vector2();
 let animationFrame;
+let visibilityHandler; 
+let entranceTween = null;
+let userInteracting = false;
+// handlers moved to module scope so they can be removed on unmount
+let onUserPointerDown = null;
+let onUserPointerUp = null;
+
+// Moon variables
+let moonPivot = null;
+let moonMesh = null;
+
+// Clock + lightweight FPS meter
+const clock = new THREE.Clock();
+const fps = ref(0);
+let fpsAccum = 0;
+let fpsElapsed = 0;
 
 // --- 1. INITIALIZATION ---
 const initScene = () => {
@@ -62,12 +79,20 @@ const initScene = () => {
   camera = new THREE.PerspectiveCamera(50, width / height, 0.1, 1000);
   camera.position.set(0, 0, 400);
 
+  // Performance heuristics
+  const isMobile = window.innerWidth < 768;
+  const maxPixelRatio = isMobile ? 1 : Math.min(window.devicePixelRatio, 1.5);
+  const nav = typeof navigator !== 'undefined' ? navigator : {};
+  const deviceMemory = nav.deviceMemory || 0;
+  const hwConcurrency = nav.hardwareConcurrency || 0;
+  const prefersLowPower = deviceMemory <= 2 || hwConcurrency <= 2;
+
   renderer = new THREE.WebGLRenderer({
-    antialias: true,
+    antialias: !isMobile && !prefersLowPower,
     powerPreference: "high-performance",
   });
   renderer.setSize(width, height);
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.setPixelRatio(maxPixelRatio);
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.toneMapping = THREE.ReinhardToneMapping;
   renderer.toneMappingExposure = 1.0;
@@ -84,17 +109,22 @@ const initScene = () => {
   const renderScene = new RenderPass(scene, camera);
   const bloomPass = new UnrealBloomPass(
     new THREE.Vector2(width, height),
-    1.5,
-    0.4,
+    1.2,
+    0.25,
     0.85
   );
-  bloomPass.threshold = 0.2;
-  bloomPass.strength = 1.5;
-  bloomPass.radius = 0.5;
+  bloomPass.threshold = prefersLowPower ? 0.35 : 0.2;
+  bloomPass.strength = prefersLowPower ? 0.6 : 1.2;
+  bloomPass.radius = 0.4;
 
-  composer = new EffectComposer(renderer);
-  composer.addPass(renderScene);
-  composer.addPass(bloomPass);
+  const useComposer = !prefersLowPower && !isMobile;
+  if (useComposer) {
+    composer = new EffectComposer(renderer);
+    composer.addPass(renderScene);
+    composer.addPass(bloomPass);
+  } else {
+    composer = null;
+  }
 
   const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
   scene.add(ambientLight);
@@ -107,14 +137,49 @@ const initScene = () => {
   loadAllPlanets();
 
   renderer.domElement.addEventListener("pointerdown", onCanvasClick);
+
+  onUserPointerDown = (e) => {
+    if (e.target === renderer.domElement) {
+      if (!controls.enabled) {
+        if (entranceTween) {
+          entranceTween.kill();
+          entranceTween = null;
+        }
+        gsap.killTweensOf(camera.position);
+        gsap.killTweensOf(controls.target);
+        controls.enabled = true;
+        controls.target.set(0, 0, 0);
+        warpSpeed = 0;
+      }
+      userInteracting = true;
+      controls.dampingFactor = 0.02;
+    }
+  };
+  onUserPointerUp = () => {
+    userInteracting = false;
+    controls.dampingFactor = 0.05;
+  };
+  renderer.domElement.addEventListener('pointerdown', onUserPointerDown);
+  window.addEventListener('pointerup', onUserPointerUp);
+
   runEntranceAnimation();
   animate();
+
+  visibilityHandler = () => {
+    if (document.hidden) {
+      if (animationFrame) cancelAnimationFrame(animationFrame);
+      animationFrame = null;
+    } else if (!animationFrame) {
+      animationFrame = requestAnimationFrame(animate);
+    }
+  };
+  document.addEventListener('visibilitychange', visibilityHandler);
 };
 
 // --- FUNGSI ANIMASI ---
 const runEntranceAnimation = () => {
   warpSpeed = 12;
-  gsap.to(camera.position, {
+  entranceTween = gsap.to(camera.position, {
     x: 80,
     y: 60,
     z: 120,
@@ -127,15 +192,17 @@ const runEntranceAnimation = () => {
       controls.enabled = true;
       controls.target.set(0, 0, 0);
       warpSpeed = 0;
+      entranceTween = null;
     },
   });
 };
 
 const createWarpStars = () => {
+  const isMobileLocal = window.innerWidth < 768;
+  const starCount = isMobileLocal ? 1000 : 2000;
   const geometry = new THREE.BufferGeometry();
-  const count = 3000;
-  const positions = new Float32Array(count * 3);
-  for (let i = 0; i < count; i++) {
+  const positions = new Float32Array(starCount * 3);
+  for (let i = 0; i < starCount; i++) {
     positions[i * 3] = (Math.random() - 0.5) * 600;
     positions[i * 3 + 1] = (Math.random() - 0.5) * 600;
     positions[i * 3 + 2] = (Math.random() - 0.5) * 600;
@@ -143,7 +210,7 @@ const createWarpStars = () => {
   geometry.setAttribute("position", new THREE.BufferAttribute(positions, 3));
   const material = new THREE.PointsMaterial({
     color: 0xffffff,
-    size: 0.7,
+    size: isMobileLocal ? 0.5 : 0.7,
     transparent: true,
     opacity: 0.8,
   });
@@ -153,41 +220,58 @@ const createWarpStars = () => {
 
 const animate = () => {
   animationFrame = requestAnimationFrame(animate);
+  const dt = clock.getDelta();
 
-  if (warpSpeed > 0.1) {
+  if (warpSpeed > 0.1 && starSystem) {
     const positions = starSystem.geometry.attributes.position.array;
-    for (let i = 0; i < 3000; i++) {
-      positions[i * 3 + 2] += warpSpeed;
-      if (positions[i * 3 + 2] > 400) {
-        positions[i * 3 + 2] = -600;
-        positions[i * 3] = (Math.random() - 0.5) * 600;
-        positions[i * 3 + 1] = (Math.random() - 0.5) * 600;
+    const count = positions.length / 3;
+    for (let i = 0; i < count; i++) {
+      const idx = i * 3;
+      positions[idx + 2] += warpSpeed * dt * 60;
+      if (positions[idx + 2] > 400) {
+        positions[idx + 2] = -600;
+        positions[idx] = (Math.random() - 0.5) * 600;
+        positions[idx + 1] = (Math.random() - 0.5) * 600;
       }
     }
     starSystem.geometry.attributes.position.needsUpdate = true;
     if (warpSpeed > 2) {
-      camera.position.x += (Math.random() - 0.5) * 0.1;
-      camera.position.y += (Math.random() - 0.5) * 0.1;
+      camera.position.x += (Math.random() - 0.5) * 0.1 * dt * 60;
+      camera.position.y += (Math.random() - 0.5) * 0.1 * dt * 60;
     }
   }
 
   controls.update();
 
   planetsMesh.forEach((obj) => {
-    if (obj.data.name === "MATAHARI") {
-      obj.mesh.rotation.y += 0.002;
-    } else {
-      obj.mesh.rotation.y += 0.005;
-    }
+    const speed = obj.data.name === "MATAHARI" ? 0.12 : 0.3;
+    obj.mesh.rotation.y += speed * dt;
   });
 
-  if (asteroidSystem) asteroidSystem.rotation.y += 0.0003;
-  composer.render();
+  if (asteroidSystem) asteroidSystem.rotation.y += 0.018 * dt;
+
+  // --- ANIMASI BULAN ---
+  // Memutar pivot bulan sehingga bulan bergerak mengelilingi bumi
+  if (moonPivot) {
+    moonPivot.rotation.y += 0.8 * dt; // Sesuaikan kecepatan di sini
+  }
+
+  fpsAccum += 1;
+  fpsElapsed += dt;
+  if (fpsElapsed >= 0.5) {
+    fps.value = Math.round(fpsAccum / fpsElapsed);
+    fpsAccum = 0;
+    fpsElapsed = 0;
+  }
+
+  if (composer) composer.render();
+  else renderer.render(scene, camera);
 };
 
 // --- ASSETS ---
 const createAsteroidBelt = () => {
-  const count = 600;
+  const isMobileLocal = window.innerWidth < 768;
+  const count = isMobileLocal ? 200 : 600;
   const geometry = new THREE.TetrahedronGeometry(0.2, 1);
   const material = new THREE.MeshLambertMaterial({ color: 0x888888 });
   asteroidSystem = new THREE.InstancedMesh(geometry, material, count);
@@ -262,7 +346,73 @@ const loadAllPlanets = () => {
           }
         });
         scene.add(mesh);
+        // add id to mesh so it can be detected from intersections
+        mesh.userData = mesh.userData || {};
+        mesh.userData.planetId = data.id;
         planetsMesh.push({ mesh, data, id: data.id });
+
+        // --- SETUP KHUSUS UNTUK BUMI DAN BULAN ---
+        if (data.name === 'BUMI') {
+          // Reset jika sudah ada
+          if (moonPivot) {
+            moonPivot.remove(moonMesh);
+            moonMesh = null;
+            moonPivot = null;
+          }
+
+          // 1. Buat Pivot (Titik putar bulan)
+          moonPivot = new THREE.Object3D();
+          moonPivot.name = 'MoonPivot';
+          mesh.add(moonPivot); // Attach ke Mesh Bumi
+
+          // Hitung jarak orbit bulan
+          const orbitRadius = data.size * 3 + 6;
+
+          // 2. Buat Visual Garis Orbit Bulan (Lingkaran Tipis)
+          // Kita tempelkan ke Mesh Bumi (bukan Pivot) agar garisnya diam relatif thd Bumi
+          const moonOrbitGeo = new THREE.RingGeometry(
+            orbitRadius - 0.08, // Inner radius
+            orbitRadius + 0.08, // Outer radius (ketebalan)
+            64                  // Segments
+          );
+          const moonOrbitMat = new THREE.MeshBasicMaterial({
+            color: 0xffffff,
+            side: THREE.DoubleSide,
+            transparent: true,
+            opacity: 0.2, // Transparansi agar tidak terlalu mencolok
+          });
+          const moonOrbitVis = new THREE.Mesh(moonOrbitGeo, moonOrbitMat);
+          moonOrbitVis.rotation.x = -Math.PI / 2; // Rebahkan
+          mesh.add(moonOrbitVis); 
+
+          // 3. Buat Mesh Bulan
+          const moonRadius = Math.max(0.15, data.size * 0.22);
+          const moonGeo = new THREE.SphereGeometry(moonRadius, 16, 16);
+          const moonMat = new THREE.MeshStandardMaterial({ 
+            color: 0x9ea7b0, 
+            roughness: 1.0, 
+            metalness: 0 
+          });
+          moonMesh = new THREE.Mesh(moonGeo, moonMat);
+          
+          // Posisikan bulan di atas garis orbit (X axis local)
+          moonMesh.position.set(orbitRadius, 0, 0);
+          moonMesh.castShadow = false;
+          moonMesh.receiveShadow = false;
+          
+          // Attach Bulan ke Pivot (agar bisa diputar via pivot)
+          moonPivot.add(moonMesh);
+
+          // Make moon clickable and map it to the BULAN entry in data (so clicking leads to moon detail)
+          const moonData = solarData.value.find(p => p.name === 'BULAN' || p.id === 9)
+          if (moonData) {
+            moonMesh.userData = moonMesh.userData || {}
+            moonMesh.userData.planetId = moonData.id
+            moonMesh.name = 'MoonMesh'
+            planetsMesh.push({ mesh: moonMesh, data: moonData, id: moonData.id })
+          }
+        }
+
         loadedCount++;
       },
       undefined,
@@ -271,7 +421,7 @@ const loadAllPlanets = () => {
   });
 };
 
-// --- LOGIC INTERAKSI (DI-UPDATE UNTUK "PLANET CENTERED") ---
+// --- LOGIC INTERAKSI ---
 const updateVisualState = (targetId) => {
   const targetOpacity = targetId !== null ? 0.05 : 0.15;
   orbitsMesh.forEach((orbit) => {
@@ -288,9 +438,7 @@ const flyToPlanet = (planetData) => {
 
   const offset = planetData.name === "MATAHARI" ? 22 : 6;
   const targetPos = targetObj.mesh.position.clone();
-
   const isMobile = window.innerWidth < 768;
-
   let camPos, lookAtPos;
 
   if (isMobile) {
@@ -353,10 +501,15 @@ const onCanvasClick = (event) => {
 
   if (intersects.length > 0) {
     let object = intersects[0].object;
-    while (object.parent && object.parent.type !== "Scene")
-      object = object.parent;
-    const data = planetsMesh.find((p) => p.mesh === object)?.data;
-    if (data) flyToPlanet(data);
+    // walk up the ancestor chain to find a matching registered mesh in planetsMesh
+    let targetData = null;
+    let o = object;
+    while (o) {
+      const match = planetsMesh.find((p) => p.mesh === o);
+      if (match) { targetData = match.data; break }
+      o = o.parent;
+    }
+    if (targetData) flyToPlanet(targetData);
   } else {
     resetView();
   }
@@ -366,8 +519,11 @@ const handleResize = () => {
   if (!containerRef.value) return;
   const w = containerRef.value.clientWidth;
   const h = containerRef.value.clientHeight;
+  const isNowMobile = w < 768;
+  const newPR = isNowMobile ? 1 : Math.min(window.devicePixelRatio, 1.5);
+  renderer.setPixelRatio(newPR);
   renderer.setSize(w, h);
-  composer.setSize(w, h);
+  if (composer) composer.setSize(w, h);
   camera.aspect = w / h;
   camera.updateProjectionMatrix();
 };
@@ -380,8 +536,12 @@ onMounted(() => {
 });
 onUnmounted(() => {
   window.removeEventListener("resize", handleResize);
-  if (renderer)
+  if (renderer) {
     renderer.domElement.removeEventListener("pointerdown", onCanvasClick);
+    renderer.domElement.removeEventListener('pointerdown', onUserPointerDown);
+  }
+  window.removeEventListener('pointerup', onUserPointerUp);
+  if (visibilityHandler) document.removeEventListener('visibilitychange', visibilityHandler);
   cancelAnimationFrame(animationFrame);
   if (renderer) renderer.dispose();
   if (composer) composer.dispose();
@@ -395,9 +555,7 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div
-    class="relative w-full h-[100dvh] bg-black overflow-hidden font-sans select-none pointer-events-auto"
-  >
+  <div class="relative w-full h-[100dvh] bg-black overflow-hidden font-sans select-none pointer-events-auto">
     <div ref="containerRef" class="w-full h-full"></div>
 
     <Transition name="slide-up" appear>
@@ -405,22 +563,16 @@ onUnmounted(() => {
         v-if="isMissionStarted"
         class="absolute inset-0 pointer-events-none z-40 flex flex-col justify-between"
       >
-        <div
-          class="p-4 md:p-6 flex justify-between items-start pointer-events-none"
-        >
-          <div
-            class="bg-black/40 backdrop-blur-md border border-white/10 rounded-2xl p-3 md:p-4 pointer-events-auto shadow-lg"
-          >
+        <div class="p-4 md:p-6 flex justify-between items-start pointer-events-none">
+          <div class="bg-black/40 backdrop-blur-md border border-white/10 rounded-2xl p-3 md:p-4 pointer-events-auto shadow-lg">
             <div class="flex items-center gap-2">
               <div class="w-2 h-2 rounded-full bg-red-500 animate-pulse"></div>
-              <span
-                class="text-[10px] md:text-xs font-bold text-gray-400 tracking-widest"
-                >LIVE FEED</span
-              >
+              <span class="text-[10px] md:text-xs font-bold text-gray-400 tracking-widest">LIVE FEED</span>
             </div>
             <div class="text-sm md:text-xl font-bold text-white mt-1">
               TATA SURYA
             </div>
+            <div class="text-[10px] text-white/80 mt-2 md:mt-3">{{ fps }} FPS</div>
           </div>
 
           <button
@@ -431,37 +583,25 @@ onUnmounted(() => {
           </button>
         </div>
 
-        <div
-          class="relative flex-1 w-full flex flex-col justify-between md:justify-center"
-        >
+        <div class="relative flex-1 w-full flex flex-col justify-between md:justify-center">
           <Transition name="fade-slide">
             <div
               v-if="selectedPlanet"
               class="w-full h-full md:h-auto pointer-events-none flex flex-col md:block"
             >
-              <div
-                class="md:hidden w-full flex flex-col items-center mt-4 pointer-events-none"
-              >
-                <h2
-                  class="text-4xl font-black text-transparent bg-clip-text bg-gradient-to-b from-white to-white/50 uppercase tracking-widest drop-shadow-[0_0_10px_rgba(255,255,255,0.5)]"
-                >
+              <div class="md:hidden w-full flex flex-col items-center mt-4 pointer-events-none">
+                <h2 class="text-4xl font-black text-transparent bg-clip-text bg-gradient-to-b from-white to-white/50 uppercase tracking-widest drop-shadow-[0_0_10px_rgba(255,255,255,0.5)]">
                   {{ selectedPlanet.name }}
                 </h2>
-                <div
-                  class="text-cyan-300 font-mono text-[10px] uppercase tracking-[0.2em] mt-1 bg-black/30 px-3 py-1 rounded-full backdrop-blur-sm border border-white/5"
-                >
+                <div class="text-cyan-300 font-mono text-[10px] uppercase tracking-[0.2em] mt-1 bg-black/30 px-3 py-1 rounded-full backdrop-blur-sm border border-white/5">
                   {{ selectedPlanet.title || "Unknown Object" }}
                 </div>
               </div>
 
               <div class="flex-1"></div>
 
-              <div
-                class="md:hidden w-full flex justify-center mb-6 pointer-events-auto px-6"
-              >
-                <div
-                  class="flex items-center bg-white/10 backdrop-blur-xl border border-white/20 rounded-full p-1.5 shadow-2xl gap-2"
-                >
+              <div class="md:hidden w-full flex justify-center mb-6 pointer-events-auto px-6">
+                <div class="flex items-center bg-white/10 backdrop-blur-xl border border-white/20 rounded-full p-1.5 shadow-2xl gap-2">
                   <button
                     @click.stop="openDetail"
                     class="bg-gradient-to-r from-cyan-500 to-blue-600 px-6 py-3 rounded-full text-xs font-bold text-white uppercase tracking-widest hover:scale-105 active:scale-95 transition-all flex items-center gap-2 shadow-[0_0_15px_rgba(6,182,212,0.5)]"
@@ -482,14 +622,10 @@ onUnmounted(() => {
                 class="hidden md:block pointer-events-auto md:w-[400px] md:bg-black/70 md:backdrop-blur-xl md:border-l-4 md:border-white/20 md:rounded-r-2xl md:p-8 md:ml-auto md:mr-12 md:shadow-2xl"
                 :style="`border-color: ${selectedPlanet.color}`"
               >
-                <h2
-                  class="text-6xl font-black text-white uppercase italic tracking-tighter mb-2"
-                >
+                <h2 class="text-6xl font-black text-white uppercase italic tracking-tighter mb-2">
                   {{ selectedPlanet.name }}
                 </h2>
-                <div
-                  class="text-cyan-300 font-mono text-sm mb-6 border-b border-white/10 pb-2 uppercase tracking-widest"
-                >
+                <div class="text-cyan-300 font-mono text-sm mb-6 border-b border-white/10 pb-2 uppercase tracking-widest">
                   {{ selectedPlanet.title || selectedPlanet.desc }}
                 </div>
                 <p class="text-gray-300 text-base leading-relaxed mb-8">
@@ -519,21 +655,15 @@ onUnmounted(() => {
           </Transition>
         </div>
 
-        <div
-          class="pointer-events-auto p-4 md:p-6 flex justify-center z-40 bg-gradient-to-t from-black via-black/80 to-transparent pb-8 md:pb-6"
-        >
-          <div
-            class="bg-white/5 backdrop-blur-xl border border-white/10 rounded-full p-2 flex gap-3 overflow-x-auto max-w-full md:max-w-[90vw] hide-scrollbar shadow-2xl relative"
-          >
+        <div class="pointer-events-auto p-4 md:p-6 flex justify-center z-40 bg-gradient-to-t from-black via-black/80 to-transparent pb-8 md:pb-6">
+          <div class="bg-white/5 backdrop-blur-xl border border-white/10 rounded-full p-2 flex gap-3 overflow-x-auto max-w-full md:max-w-[90vw] hide-scrollbar shadow-2xl relative">
             <button
               @click="resetView"
               class="flex-shrink-0 w-12 h-12 rounded-full flex items-center justify-center bg-white/5 hover:bg-cyan-500 hover:text-black transition-all border border-white/10 text-xl"
             >
               🔭
             </button>
-            <div
-              class="w-[1px] bg-white/20 h-8 self-center mx-1 flex-shrink-0"
-            ></div>
+            <div class="w-[1px] bg-white/20 h-8 self-center mx-1 flex-shrink-0"></div>
 
             <button
               v-for="planet in solarData"

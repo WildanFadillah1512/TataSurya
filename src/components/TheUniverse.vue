@@ -13,13 +13,13 @@ const route = useRoute()
     alpha 
     antialias 
     power-preference="high-performance"
-    class="block outline-none touch-none pointer-events-none" 
+    class="block outline-none touch-none pointer-events-auto" 
     style="z-index: 0;"
   >
     <Suspense>
       <SpaceScene 
         :current-view="route.name" 
-        :planet-target="route.params.name" 
+        :planet-target="route.params.id" 
       />
       <template #fallback></template>
     </Suspense>

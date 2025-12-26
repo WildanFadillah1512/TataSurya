@@ -34,10 +34,17 @@ const router = createRouter({
       // Lazy load view GameView
       component: () => import('../views/GameView.vue')
     },
+    // --- HALAMAN QUIZ (BARU) ---
+    {
+      path: '/quiz/:id',
+      name: 'quiz',
+      // Menerima parameter :id (bisa angka untuk planet, atau string 'events')
+      component: () => import('../views/QuizView.vue')
+    },
     // --- DETAIL PLANET ---
     {
       path: '/planet/:id',
-      name: 'PlanetDetail',
+      name: 'planet-detail',
       component: () => import('../views/PlanetDetail.vue'),
       props: true
     }

@@ -9,8 +9,9 @@ const store = useSpaceStore()
 
 // 1. Props Definition
 const props = defineProps({
-  currentView: { type: String, default: 'home' }, // Tambah type validation
-  planetTarget: { type: String, default: null }
+  currentView: { type: String, default: 'home' },
+  // planetTarget dapat berupa nama planet (string) atau id dari route (number)
+  planetTarget: { type: [String, Number], default: null }
 })
 
 const { currentView, planetTarget } = toRefs(props)
@@ -45,25 +46,34 @@ const moveCamera = () => {
   } 
   
   // --- VIEW: PLANET DETAIL ---
-  else if (currentView.value === 'planet-detail' && planetTarget.value) {
-    const pName = planetTarget.value
-    const pIndex = store.planets.findIndex(p => p.name === pName)
-    
+  else if (currentView.value === 'planet-detail' && planetTarget.value != null) {
+    // planetTarget bisa berupa id (dari route.params.id) atau nama planet
+    let pIndex = -1
+    const tgt = planetTarget.value
+    const id = parseInt(tgt)
+
+    if (!Number.isNaN(id)) {
+      // Jika id numeric: solarData id 1 = Mercury -> store.planets index 0 (id - 1)
+      pIndex = id > 0 ? id - 1 : -1
+    } else {
+      pIndex = store.planets.findIndex(p => p.name.toLowerCase() === String(tgt).toLowerCase())
+    }
+
     // Safety check: Pastikan planet ketemu
     if (pIndex !== -1 && planetRefs.value[pIndex]) {
       const targetObj = planetRefs.value[pIndex]
-      store.setFocus(pName) // Update store agar planet berhenti bergerak (sesuai logika loop bawah)
+      const planetName = store.planets[pIndex].name
+      store.setFocus(planetName)
 
       // Animasi Kamera mendekat ke Planet
       gsap.to(cameraRef.value.position, {
-        x: targetObj.position.x + (targetObj.geometry.parameters.radius * 4 || 10), // Offset dinamis
+        x: targetObj.position.x + ((targetObj.geometry && targetObj.geometry.parameters && targetObj.geometry.parameters.radius) ? targetObj.geometry.parameters.radius * 4 : 10),
         y: targetObj.position.y + 2,
-        z: targetObj.position.z + (targetObj.geometry.parameters.radius * 4 || 10),
+        z: targetObj.position.z + ((targetObj.geometry && targetObj.geometry.parameters && targetObj.geometry.parameters.radius) ? targetObj.geometry.parameters.radius * 4 : 10),
         duration: 2,
         ease: "power3.out",
         onUpdate: () => {
           // KUNCI: Update target controls SETIAP FRAME animasi agar tidak "stutter"
-          // Kita kunci pandangan ke posisi planet saat ini
           controlsRef.value.target.set(targetObj.position.x, targetObj.position.y, targetObj.position.z)
         }
       })
