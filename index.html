@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    
+    <title>SOLARIS | Interactive 3D System</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700;900&family=Rajdhani:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <style>
+      html, body {
+        background-color: #000000; /* Hitam pekat */
+        margin: 0;
+        padding: 0;
+        overflow: hidden;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="app"></div>
+
+    <!-- Netlify form placeholder (detected at build time) -->
+    <form name="quiz-results" data-netlify="true" netlify-honeypot="bot-field" hidden>
+      <input type="hidden" name="form-name" value="quiz-results" />
+      <input type="text" name="bot-field" />
+      <input type="text" name="name" />
+      <input type="text" name="quizId" />
+      <input type="text" name="score" />
+      <input type="text" name="details" />
+    </form>
+
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
