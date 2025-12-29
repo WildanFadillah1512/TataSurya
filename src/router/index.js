@@ -13,7 +13,6 @@ const router = createRouter({
     {
       path: '/selection',
       name: 'selection',
-      // Ini adalah halaman menu utama setelah Home
       component: () => import('../views/SelectionView.vue')
     },
     // --- FITUR UTAMA ---
@@ -25,20 +24,36 @@ const router = createRouter({
     {
       path: '/events',
       name: 'events',
-      // Lazy load view EventsView
       component: () => import('../views/EventsView.vue')
     },
+    
+    // =======================================================
+    // BAGIAN GAMES (Disesuaikan dengan folder src/views/games)
+    // =======================================================
+    
     {
       path: '/game',
-      name: 'game',
-      // Lazy load view GameView
-      component: () => import('../views/GameView.vue')
+      name: 'game-lobby', // Halaman Menu Utama Game
+      // Mengarah ke folder 'games' dan file 'GameLobby.vue'
+      component: () => import('../views/games/GameLobby.vue')
     },
-    // --- HALAMAN QUIZ (BARU) ---
+    {
+      path: '/game/play-1',
+      name: 'game-1', // Game Tebak Planet
+      component: () => import('../views/games/Game1View.vue')
+    },
+    {
+      path: '/game/play-2',
+      name: 'game-2', // Game Quiz
+      component: () => import('../views/games/Game2View.vue')
+    },
+
+    // =======================================================
+
+    // --- HALAMAN QUIZ (UMUM) ---
     {
       path: '/quiz/:id',
       name: 'quiz',
-      // Menerima parameter :id (bisa angka untuk planet, atau string 'events')
       component: () => import('../views/QuizView.vue')
     },
     // --- DETAIL PLANET ---
