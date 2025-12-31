@@ -3,10 +3,8 @@
     <h1>Game 2: Space Quiz</h1>
     <p>Halaman ini sudah berhasil dimuat.</p>
     <p>Kuis akan dibuat nanti.</p>
-    
-    <router-link to="/game" class="back-link">
-      ⬅ Kembali ke Menu
-    </router-link>
+
+    <router-link to="/game" class="back-link"> ⬅ Kembali ke Menu </router-link>
   </div>
 </template>
 
