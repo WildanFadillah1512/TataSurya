@@ -337,7 +337,13 @@ const current = computed(() => sections[activeIndex.value])
           <div class="text-[8px] md:text-[10px] text-gray-500">ID: 001 // ONLINE</div>
         </div>
         
-        <div class="flex gap-2 pointer-events-auto">
+        <div class="flex gap-4 pointer-events-auto items-center">
+            <button
+               @click="router.push('/leaderboard')"
+               class="px-4 py-2 bg-yellow-500/10 hover:bg-yellow-500/80 border border-yellow-500/50 rounded-lg text-white text-xs font-bold transition-all backdrop-blur-sm shadow-[0_0_10px_rgba(234,179,8,0.2)]"
+             >
+               🏆 RANKS
+             </button>
           <div v-for="(s, i) in sections" :key="i"
                @click="activeIndex = i; updateShape()"
                class="h-1 w-6 md:w-8 rounded-full transition-all duration-300 cursor-pointer hover:w-10 md:hover:w-12"

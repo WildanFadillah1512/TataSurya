@@ -90,7 +90,10 @@ watch([currentView, planetTarget], () => {
 // 5. Render Loop (Rotasi Planet)
 const { onBeforeRender } = useLoop()
 
-onBeforeRender(({ elapsed }) => {
+onBeforeRender(({ elapsed, delta }) => {
+  // Early return jika delta = 0 (paused atau no change)
+  if (delta === 0) return
+
   // Loop rotasi planet
   store.planets.forEach((data, index) => {
     const obj = planetRefs.value[index]
@@ -102,12 +105,17 @@ onBeforeRender(({ elapsed }) => {
        return 
     }
 
+    // Optimasi: Planet jauh (index > 5) hanya update setiap 2 frame
+    // Ini mengurangi perhitungan tanpa terlihat laggy
+    const shouldUpdate = index <= 5 || Math.floor(elapsed * 60) % 2 === 0
+    if (!shouldUpdate) return
+
     // Rumus Orbit sederhana
     obj.position.x = Math.cos(elapsed * 0.5 + index) * data.dist
     obj.position.z = Math.sin(elapsed * 0.5 + index) * data.dist
     
     // Opsional: Rotasi planet pada porosnya sendiri
-    obj.rotation.y += 0.01
+    obj.rotation.y += 0.01 * delta * 60 // Normalize dengan delta time
   })
 })
 </script>

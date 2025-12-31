@@ -25,14 +25,14 @@ const visualConfig = [
   { id: 8, distance: 130, size: 2.4 },
 ];
 
-const solarData = computed(() => {
-  return rawContentData.map((content) => {
-    const visual = visualConfig.find((v) => v.id === content.id) || {
-      distance: 0,
-      size: 1,
-    };
-    return { ...content, ...visual };
-  });
+// Optimasi: Hitung sekali saja di setup, bukan di computed
+// Ini menghindari re-calculation setiap kali component re-render
+const solarData = rawContentData.map((content) => {
+  const visual = visualConfig.find((v) => v.id === content.id) || {
+    distance: 0,
+    size: 1,
+  };
+  return { ...content, ...visual };
 });
 
 const router = useRouter();
@@ -296,7 +296,7 @@ const createAsteroidBelt = () => {
 const loadAllPlanets = () => {
   const loader = new GLTFLoader();
   let loadedCount = 0;
-  solarData.value.forEach((data) => {
+  solarData.forEach((data) => {
     if (data.distance > 0) {
       const orbitGeo = new THREE.RingGeometry(
         data.distance - 0.1,
@@ -404,7 +404,7 @@ const loadAllPlanets = () => {
           moonPivot.add(moonMesh);
 
           // Make moon clickable and map it to the BULAN entry in data (so clicking leads to moon detail)
-          const moonData = solarData.value.find(
+          const moonData = solarData.find(
             (p) => p.name === "BULAN" || p.id === 9
           );
           if (moonData) {
@@ -545,22 +545,66 @@ onMounted(() => {
 });
 onUnmounted(() => {
   window.removeEventListener("resize", handleResize);
+  
+  // Cleanup event listeners
   if (renderer) {
     renderer.domElement.removeEventListener("pointerdown", onCanvasClick);
-    renderer.domElement.removeEventListener("pointerdown", onUserPointerDown);
+    if (onUserPointerDown) {
+      renderer.domElement.removeEventListener("pointerdown", onUserPointerDown);
+    }
   }
-  window.removeEventListener("pointerup", onUserPointerUp);
-  if (visibilityHandler)
+  if (onUserPointerUp) {
+    window.removeEventListener("pointerup", onUserPointerUp);
+  }
+  
+  if (visibilityHandler) {
     document.removeEventListener("visibilitychange", visibilityHandler);
-  cancelAnimationFrame(animationFrame);
-  if (renderer) renderer.dispose();
-  if (composer) composer.dispose();
+  }
+
+  // Cancel animation
+  if (animationFrame) {
+    cancelAnimationFrame(animationFrame);
+    animationFrame = null;
+  }
+
+  // Kill GSAP tweens
+  gsap.killTweensOf("*");
+
+  // Dispose Three.js resources
+  if (renderer) {
+    renderer.dispose();
+    renderer = null;
+  }
+  
+  if (composer) {
+    composer = null;
+  }
+  
   if (scene) {
     scene.traverse((o) => {
       if (o.geometry) o.geometry.dispose();
-      if (o.material) o.material.dispose();
+      if (o.material) {
+        const materials = Array.isArray(o.material) ? o.material : [o.material];
+        materials.forEach(m => {
+          // Dispose textures
+          if (m.map) m.map.dispose();
+          if (m.normalMap) m.normalMap.dispose();
+          if (m.roughnessMap) m.roughnessMap.dispose();
+          if (m.metalnessMap) m.metalnessMap.dispose();
+          m.dispose();
+        });
+      }
     });
+    scene.clear();
+    scene = null;
   }
+  
+  camera = null;
+  controls = null;
+  planetsMesh = [];
+  orbitsMesh = [];
+  starSystem = null;
+  asteroidSystem = null;
 });
 </script>
 
@@ -596,12 +640,20 @@ onUnmounted(() => {
             </div>
           </div>
 
-          <button
-            @click="goBack"
-            class="cursor-pointer pointer-events-auto px-4 py-2 bg-cyan-500/10 hover:bg-cyan-500/80 border border-cyan-500/50 rounded-lg text-white text-xs font-bold transition-all backdrop-blur-sm"
-          >
-            ← BACK
-          </button>
+          <div class="flex gap-3 items-center pointer-events-auto">
+             <button
+              @click="router.push('/leaderboard')"
+              class="px-4 py-2 bg-yellow-500/10 hover:bg-yellow-500/80 border border-yellow-500/50 rounded-lg text-white text-xs font-bold transition-all backdrop-blur-sm shadow-[0_0_10px_rgba(234,179,8,0.2)]"
+            >
+              🏆 RANKS
+            </button>
+            <button
+              @click="goBack"
+              class="cursor-pointer px-4 py-2 bg-cyan-500/10 hover:bg-cyan-500/80 border border-cyan-500/50 rounded-lg text-white text-xs font-bold transition-all backdrop-blur-sm"
+            >
+              ← BACK
+            </button>
+          </div>
         </div>
 
         <div

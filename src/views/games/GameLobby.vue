@@ -1,319 +1,487 @@
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
+import * as THREE from 'three'
+import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js'
+import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js'
+import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js'
+import gsap from 'gsap'
 
 const router = useRouter()
+const containerRef = ref(null)
+const uiContainerRef = ref(null) // For 3D HUD tilt
 
-// --- DATA MISI ---
-const missions = ref([
+// --- DATA: MULTIVERSE GATES ---
+const portals = [
+  {
+    id: 0,
+    title: 'SPACE MYSTERY',
+    sub: 'The Enigma Gate',
+    desc: 'Solve Ancient Riddles',
+    type: 'PUZZLE DIMENSION',
+    color: '#a855f7', // Purple
+    coreColor: '#d8b4fe',
+    path: '/game/play-1',
+    locked: false
+  },
   {
     id: 1,
-    code: 'OP-PLANETARY',
-    title: 'PLANET HUNTER',
-    subtitle: 'Identification Module',
-    desc: 'Uji kemampuan pengenalan visual objek tata surya dalam simulasi waktu nyata.',
-    diff: 'CADET',
-    color: 'from-cyan-500 to-blue-500',
-    accent: '#06b6d4',
-    icon: '🪐',
-    path: '/game/play-1', // Pastikan route ini ada di router/index.js
+    title: 'ASTRO ADVENTURE',
+    sub: 'The Velocity Gate',
+    desc: 'High Speed Exploration',
+    type: 'FLIGHT DIMENSION',
+    color: '#06b6d4', // Cyan
+    coreColor: '#67e8f9',
+    path: '/game/play-2',
     locked: false
   },
   {
     id: 2,
-    code: 'OP-ACADEMY',
-    title: 'COSMIC QUIZ',
-    subtitle: 'Theoretical Exam',
-    desc: 'Evaluasi pengetahuan astrofisika untuk promosi pangkat kadet akademi.',
-    diff: 'OFFICER',
-    color: 'from-purple-500 to-pink-500',
-    accent: '#d946ef',
-    icon: '🧠',
-    path: '/game/play-2', // Pastikan route ini ada di router/index.js
-    locked: false
-  },
-  {
-    id: 3,
-    code: 'OP-CLASSIFIED',
-    title: 'WARP VELOCITY',
-    subtitle: 'Simulasi Tertutup',
-    desc: 'Akses ditolak. Modul ini memerlukan izin keamanan level 5.',
-    diff: 'ELITE',
-    color: 'from-yellow-500 to-orange-500',
-    accent: '#f59e0b',
-    icon: '🔒',
+    title: 'CLASSIFIED',
+    sub: 'Sealed Dimension',
+    desc: 'Containment Field Active',
+    type: 'RESTRICTED',
+    color: '#ef4444', // Red
+    coreColor: '#7f1d1d',
     path: '',
     locked: true
   }
-])
+]
 
-// --- LOGIKA TILT KARTU (3D HOVER) ---
-const handleMouseMove = (e, index) => {
-  const card = document.getElementById(`mission-card-${index}`)
-  if (!card) return
+const activeIndex = ref(-1)
+const isTraveling = ref(false)
+const mouse = ref({ x: 0, y: 0 })
 
-  const rect = card.getBoundingClientRect()
-  const x = e.clientX - rect.left
-  const y = e.clientY - rect.top
-  
-  const centerX = rect.width / 2
-  const centerY = rect.height / 2
-  
-  const rotateX = ((y - centerY) / centerY) * -10 
-  const rotateY = ((x - centerX) / centerX) * 10
+// --- THREE.JS VARIABLES ---
+let scene, camera, renderer, composer
+let gates = [] 
+let starSystem // Stores star particles for gravity effect
+let raycaster
+let animationId
+let clock = new THREE.Clock()
 
-  card.style.transform = `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale(1.02)`
+const isMobile = window.innerWidth < 768
+
+// --- 3D SETUP ---
+const init = () => {
+    const w = window.innerWidth
+    const h = window.innerHeight
+
+    scene = new THREE.Scene()
+    scene.background = new THREE.Color('#000000')
+    scene.fog = new THREE.FogExp2('#000000', 0.02)
+
+    camera = new THREE.PerspectiveCamera(60, w/h, 0.1, 1000)
+    camera.position.set(0, 2, 25)
+
+    renderer = new THREE.WebGLRenderer({ antialias: false, powerPreference: 'high-performance' })
+    renderer.setSize(w, h)
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
+    containerRef.value.appendChild(renderer.domElement)
+
+    raycaster = new THREE.Raycaster()
+
+    // -- DYNAMIC STARFIELD (Gravity Reactive) --
+    const starCount = 4000
+    const starsGeo = new THREE.BufferGeometry()
+    const starPos = new Float32Array(starCount * 3)
+    const starVel = new Float32Array(starCount * 3) // Velocity for physics
+    const starBasePos = new Float32Array(starCount * 3) // Home position
+
+    for(let i=0; i<starCount; i++) {
+        const x = (Math.random() - 0.5) * 200
+        const y = (Math.random() - 0.5) * 100
+        const z = (Math.random() - 0.5) * 100
+        
+        starPos[i*3] = x; starBasePos[i*3] = x;
+        starPos[i*3+1] = y; starBasePos[i*3+1] = y;
+        starPos[i*3+2] = z; starBasePos[i*3+2] = z;
+        
+        starVel[i*3] = 0; starVel[i*3+1] = 0; starVel[i*3+2] = 0;
+    }
+    
+    starsGeo.setAttribute('position', new THREE.BufferAttribute(starPos, 3))
+    const starsMat = new THREE.PointsMaterial({ color: 0x888888, size: 0.15, transparent: true, opacity: 0.6 })
+    starSystem = new THREE.Points(starsGeo, starsMat)
+    starSystem.userData = { starBasePos, starVel }
+    scene.add(starSystem)
+
+    // -- BUILD GATES --
+    buildGates()
+
+    // -- LIGHTS --
+    // Dynamic light that moves to active gate
+    const gateLight = new THREE.PointLight(0xffffff, 0, 100)
+    gateLight.position.set(0, 0, 5)
+    gateLight.name = 'GateLight'
+    scene.add(gateLight)
+
+    // -- POST PROCESSING --
+    const renderPass = new RenderPass(scene, camera)
+    const bloomPass = new UnrealBloomPass(new THREE.Vector2(w, h), 1.5, 0.4, 0.85)
+    bloomPass.strength = 1.5 
+    bloomPass.radius = 0.6
+    bloomPass.threshold = 0.1
+    
+    composer = new EffectComposer(renderer)
+    composer.addPass(renderPass)
+    composer.addPass(bloomPass)
+
+    window.addEventListener('resize', onResize)
+    window.addEventListener('mousemove', onMouseMove)
+    window.addEventListener('click', onClick)
+
+    animate()
+    
+    gsap.from(camera.position, { z: 60, duration: 2.5, ease: "power2.out" })
 }
 
-const resetCard = (index) => {
-  const card = document.getElementById(`mission-card-${index}`)
-  if (card) {
-    card.style.transform = 'perspective(1000px) rotateX(0) rotateY(0) scale(1)'
-  }
+const buildGates = () => {
+    const spacing = isMobile ? 10 : 16
+    
+    portals.forEach((p, i) => {
+        const group = new THREE.Group()
+        const xPos = (i - 1) * spacing
+        const zPos = Math.abs(i-1) * 2
+        
+        group.position.set(xPos, 0, -zPos)
+        group.lookAt(0, 0, 25)
+        
+        // 1. OUTER RING
+        const ringGeo = new THREE.TorusGeometry(3.5, 0.2, 16, 50)
+        const ringMat = new THREE.MeshBasicMaterial({ 
+            color: p.color, 
+            wireframe: true,
+            transparent: true,
+            opacity: 0.15
+        })
+        const ring = new THREE.Mesh(ringGeo, ringMat)
+        group.add(ring)
+        
+        // 2. ENERGY RING (Rotating)
+        const innerGeo = new THREE.TorusGeometry(3.2, 0.05, 8, 40)
+        const innerMat = new THREE.MeshBasicMaterial({ color: p.coreColor, transparent: true, opacity: 0.5 })
+        const innerRing = new THREE.Mesh(innerGeo, innerMat)
+        group.add(innerRing)
+        
+        // 3. EVENT HORIZON (Particles)
+        const horizon = createHorizon(p.color)
+        group.add(horizon)
+
+        // 4. LOCKED CAGE
+        if (p.locked) {
+            const cageGeo = new THREE.IcosahedronGeometry(2.5, 1)
+            const cageMat = new THREE.MeshBasicMaterial({ color: 'red', wireframe: true, transparent: true, opacity: 0.3 })
+            const cage = new THREE.Mesh(cageGeo, cageMat)
+            group.add(cage)
+        }
+
+        scene.add(group)
+        gates.push({ group, ring, innerRing, horizon, data: p })
+    })
 }
 
-const goBack = () => {
-  router.push('/explore') 
+const createHorizon = (color) => {
+    const count = 500
+    const geo = new THREE.BufferGeometry()
+    const pos = new Float32Array(count * 3)
+    const data = { ang: [], rad: [], spd: [] }
+    
+    for(let i=0; i<count; i++) {
+        const ang = Math.random() * Math.PI * 2
+        const rad = Math.random() * 3
+        
+        data.ang.push(ang)
+        data.rad.push(rad)
+        data.spd.push(0.01 + Math.random() * 0.03)
+        
+        pos[i*3] = Math.cos(ang) * rad
+        pos[i*3+1] = Math.sin(ang) * rad
+        pos[i*3+2] = (Math.random()-0.5) * 0.2
+    }
+    
+    geo.setAttribute('position', new THREE.BufferAttribute(pos, 3))
+    const mat = new THREE.PointsMaterial({
+        color: color,
+        size: 0.08,
+        transparent: true,
+        opacity: 0.1, // Dim default
+        blending: THREE.AdditiveBlending
+    })
+    
+    const mesh = new THREE.Points(geo, mat)
+    mesh.userData = data
+    return mesh
 }
+
+// --- ANIMATION LOOP ---
+const animate = () => {
+    animationId = requestAnimationFrame(animate)
+    
+    // Raycast
+    raycaster.setFromCamera(mouse.value, camera)
+    const hitTestObjects = gates.map(g => g.horizon)
+    const intersects = raycaster.intersectObjects(hitTestObjects)
+    
+    let hoveredIndex = -1
+    if (intersects.length > 0 && !isTraveling.value) {
+        const hitObj = intersects[0].object
+        hoveredIndex = gates.findIndex(g => g.horizon === hitObj)
+    }
+    
+    if (!isTraveling.value) {
+        activeIndex.value = hoveredIndex
+        document.body.style.cursor = hoveredIndex !== -1 ? 'pointer' : 'default'
+    }
+
+    // --- GRAVITY DISTORTION LOGIC ---
+    updateGravity(hoveredIndex)
+    
+    // --- GATE UPDATES ---
+    const gateLight = scene.getObjectByName('GateLight')
+    if (hoveredIndex !== -1) {
+        const targetGate = gates[hoveredIndex]
+        gateLight.color.set(targetGate.data.color)
+        gateLight.intensity = THREE.MathUtils.lerp(gateLight.intensity, 2, 0.1)
+        gateLight.position.lerp(targetGate.group.position, 0.1)
+    } else {
+        gateLight.intensity = THREE.MathUtils.lerp(gateLight.intensity, 0, 0.1)
+    }
+
+    gates.forEach((g, i) => {
+        const isHovered = i === activeIndex.value
+        const isLocked = g.data.locked
+        
+        g.innerRing.rotation.z -= isHovered ? 0.1 : 0.01
+        g.ring.rotation.z += 0.002
+        
+        // Horizon Particles
+        const positions = g.horizon.geometry.attributes.position.array
+        const { ang, rad, spd } = g.horizon.userData
+        
+        for(let j=0; j<ang.length; j++) {
+            ang[j] += spd[j] * (isHovered ? 5 : 1)
+            if (isTraveling.value && isHovered) rad[j] *= 0.95 // Suck in
+            
+            positions[j*3] = Math.cos(ang[j]) * rad[j]
+            positions[j*3+1] = Math.sin(ang[j]) * rad[j]
+        }
+        g.horizon.geometry.attributes.position.needsUpdate = true
+        
+        // Opacity
+        const targetOp = isHovered && !isLocked ? 0.8 : 0.1
+        g.horizon.material.opacity = THREE.MathUtils.lerp(g.horizon.material.opacity, targetOp, 0.1)
+    })
+
+    // Camera Parallax
+    if (!isTraveling.value) {
+        camera.position.x += (mouse.value.x * 1.5 - camera.position.x) * 0.05
+        camera.position.y += (2 + mouse.value.y * 1 - camera.position.y) * 0.05
+        camera.lookAt(0, 0, 0)
+    }
+
+    composer.render()
+}
+
+const updateGravity = (targetIndex) => {
+    const positions = starSystem.geometry.attributes.position.array
+    const { starBasePos, starVel } = starSystem.userData
+    
+    let targetPos = new THREE.Vector3(0,0,0)
+    let active = false
+    
+    if (targetIndex !== -1) {
+        targetPos.copy(gates[targetIndex].group.position)
+        active = true
+    }
+    
+    for(let i=0; i<positions.length; i+=3) {
+        const ix = i, iy = i+1, iz = i+2
+        
+        if (active) {
+            // Attraction
+            const dx = targetPos.x - positions[ix]
+            const dy = targetPos.y - positions[iy]
+            const dz = targetPos.z - positions[iz]
+            const dist = Math.sqrt(dx*dx+dy*dy+dz*dz)
+            
+            if (dist < 30 && dist > 2) {
+                const force = 0.5 / (dist * dist)
+                starVel[ix] += dx * force
+                starVel[iy] += dy * force
+                starVel[iz] += dz * force
+            }
+        }
+        
+        // Spring back to base
+        const bx = starBasePos[ix] - positions[ix]
+        const by = starBasePos[iy] - positions[iy]
+        const bz = starBasePos[iz] - positions[iz]
+        
+        starVel[ix] += bx * 0.01
+        starVel[iy] += by * 0.01
+        starVel[iz] += bz * 0.01
+        
+        // Damping
+        starVel[ix] *= 0.9
+        starVel[iy] *= 0.9
+        starVel[iz] *= 0.9
+        
+        positions[ix] += starVel[ix]
+        positions[iy] += starVel[iy]
+        positions[iz] += starVel[iz]
+    }
+    starSystem.geometry.attributes.position.needsUpdate = true
+}
+
+// --- INTERACTION ---
+const onClick = () => {
+    if (activeIndex.value === -1 || isTraveling.value) return
+    const gate = gates[activeIndex.value]
+    if (gate.data.locked) return
+    
+    enterWormhole(activeIndex.value)
+}
+
+const enterWormhole = (index) => {
+    isTraveling.value = true
+    const gate = gates[index]
+    const targetPos = gate.group.position.clone()
+    
+    gsap.to(camera.position, {
+        x: targetPos.x,
+        y: targetPos.y,
+        z: targetPos.z - 10,
+        duration: 2,
+        ease: "power3.in",
+        onUpdate: () => {
+            camera.position.x += (Math.random() - 0.5) * 0.2
+            camera.position.y += (Math.random() - 0.5) * 0.2
+        },
+        onComplete: () => {
+            router.push(gate.data.path)
+        }
+    })
+    
+    gsap.to('.ui-layer', { opacity: 0, duration: 0.5 })
+}
+
+const onMouseMove = (e) => {
+    mouse.value.x = (e.clientX / window.innerWidth) * 2 - 1
+    mouse.value.y = -(e.clientY / window.innerHeight) * 2 + 1
+    
+    // 3D HUD TILT
+    if (uiContainerRef.value) {
+        const rx = mouse.value.y * -5
+        const ry = mouse.value.x * 5
+        uiContainerRef.value.style.transform = `perspective(1000px) rotateX(${rx}deg) rotateY(${ry}deg)`
+    }
+}
+
+const onResize = () => {
+    if(!containerRef.value) return
+    const w = window.innerWidth
+    const h = window.innerHeight
+    camera.aspect = w/h
+    camera.updateProjectionMatrix()
+    renderer.setSize(w, h)
+    composer.setSize(w, h)
+}
+
+onMounted(() => { init() })
+onUnmounted(() => {
+    cancelAnimationFrame(animationId)
+    window.removeEventListener('resize', onResize)
+    window.removeEventListener('mousemove', onMouseMove)
+    window.removeEventListener('click', onClick)
+    if(renderer) renderer.dispose()
+})
+
+const currentGate = computed(() => activeIndex.value !== -1 ? portals[activeIndex.value] : null)
 </script>
 
 <template>
-  <div class="lobby-wrapper">
-    <div class="bg-layer stars-sm"></div>
-    <div class="bg-layer stars-md"></div>
-    <div class="scanline"></div>
+  <div class="relative w-full h-full bg-black font-sans overflow-hidden select-none text-white">
     
-    <div class="header-hud">
-      <div class="top-bar">
-        <div class="flex items-center gap-4">
-           <button @click="goBack" class="back-btn">
-             <span class="icon">❮</span> SYSTEM EXIT
-           </button>
-           <div class="w-[1px] h-6 bg-white/20"></div>
-           <div class="live-indicator">
-             <span class="dot"></span> ONLINE
-           </div>
-        </div>
-        <div class="user-profile">
-          COMMANDER_USER // <span class="text-cyan-400">LOGGED_IN</span>
-        </div>
-      </div>
-      
-      <div class="title-section">
-        <h1 class="main-title">MISSION CONTROL</h1>
-        <p class="sub-title">Pilih modul simulasi untuk memulai pelatihan.</p>
-      </div>
-    </div>
-
-    <div class="mission-container">
-      <div 
-        v-for="(mission, index) in missions" 
-        :key="mission.id"
-        class="card-wrapper"
-        @mousemove="(e) => handleMouseMove(e, index)"
-        @mouseleave="() => resetCard(index)"
-      >
-        <div 
-          :id="`mission-card-${index}`" 
-          class="mission-card"
-          :class="{ 'locked': mission.locked }"
-        >
-          <div class="glow-border" :style="{ background: mission.locked ? 'gray' : mission.accent }"></div>
-          
-          <div class="card-inner">
-            <div class="card-header">
-              <span class="mission-code">{{ mission.code }}</span>
-              <span class="mission-diff" :style="{ color: mission.locked ? '#888' : mission.accent }">
-                {{ mission.diff }}
-              </span>
+    <div ref="containerRef" class="absolute inset-0 z-0"></div>
+    
+    <!-- UI LAYER with 3D Transform -->
+    <div ref="uiContainerRef" class="ui-layer absolute inset-0 z-10 pointer-events-none p-6 md:p-12 flex flex-col justify-between transition-opacity duration-500 will-change-transform">
+        
+        <!-- HEADER -->
+        <div class="flex justify-between items-start pointer-events-auto">
+            <div class="flex flex-col">
+                <div class="text-[10px] md:text-xs font-mono text-cyan-400 tracking-[0.4em] uppercase opacity-70 mb-1">Nexus Protocol</div>
+                <h1 class="text-3xl md:text-5xl font-headers font-bold tracking-widest text-white uppercase drop-shadow-[0_0_10px_rgba(255,255,255,0.3)]">
+                    Gate Selection
+                </h1>
             </div>
-
-            <div class="icon-area">
-              <div class="icon-circle" :class="mission.locked ? 'bg-gray-800' : `bg-gradient-to-br ${mission.color}`">
-                {{ mission.icon }}
-              </div>
-            </div>
-
-            <h2 class="mission-title">{{ mission.title }}</h2>
-            <div class="mission-subtitle">{{ mission.subtitle }}</div>
             
-            <div class="divider"></div>
-            
-            <p class="mission-desc">{{ mission.desc }}</p>
-
-            <router-link 
-              v-if="!mission.locked"
-              :to="mission.path" 
-              class="action-btn"
-              :style="{ '--accent': mission.accent }"
-            >
-              INITIALIZE <span class="arrow">→</span>
-            </router-link>
-
-            <button v-else class="locked-btn">
-              🔒 LOCKED
-            </button>
-          </div>
+             <button @click="router.push('/selection')" class="px-6 py-2 border border-white/20 hover:bg-white/10 hover:border-white/50 text-white rounded text-xs font-bold tracking-widest transition-all backdrop-blur-md group">
+                <span class="group-hover:-translate-x-1 inline-block transition-transform">&lt;</span> RETURN
+             </button>
         </div>
-      </div>
-    </div>
 
-    <div class="footer-hud">
-      <div class="data-block">
-        <span>SYS.VER.4.2</span>
-        <span>LATENCY: 12ms</span>
-        <span>SECURE_CONNECTION</span>
-      </div>
+        <!-- ACTIVE GATE INFO -->
+        <div class="absolute bottom-24 left-0 w-full text-center pointer-events-none transition-all duration-300"
+             :class="currentGate ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 translate-y-10 scale-95'">
+            
+            <div v-if="currentGate" class="relative inline-block p-8">
+                 <!-- Holographic Backing -->
+                 <div class="absolute inset-0 bg-black/40 backdrop-blur-xl border-x border-white/10 skew-x-12 -z-10 rounded-lg"></div>
+                 
+                 <div class="text-xs md:text-sm font-mono tracking-[0.4em] uppercase text-gray-400 mb-2">
+                     {{ currentGate.sub }}
+                 </div>
+                 
+                 <h2 class="text-4xl md:text-7xl font-headers font-black uppercase tracking-wider mb-4 leading-none text-transparent bg-clip-text bg-gradient-to-b from-white to-gray-400"
+                     :style="{ dropShadow: `0 0 20px ${currentGate.color}` }">
+                     {{ currentGate.title }}
+                 </h2>
+                 
+                 <div class="flex items-center justify-center gap-4 mb-6">
+                     <div class="h-[1px] w-12 bg-white/30"></div>
+                     <span class="text-xs font-bold tracking-widest uppercase text-white/80">{{ currentGate.type }}</span>
+                     <div class="h-[1px] w-12 bg-white/30"></div>
+                 </div>
+
+                 <div v-if="!currentGate.locked" class="text-cyan-400 text-xs tracking-[0.2em] uppercase font-bold animate-pulse">
+                     [ Click to Enter Wormhole ]
+                 </div>
+                 <div v-else class="text-red-500 text-xs tracking-[0.2em] uppercase font-bold border border-red-500/30 px-4 py-2 bg-red-500/10 rounded">
+                     ⚠️ Access Restricted
+                 </div>
+            </div>
+            
+        </div>
+
+        <!-- FOOTER -->
+        <div class="flex justify-between items-end text-[10px] font-mono text-gray-500 border-t border-white/10 pt-4 opacity-50">
+            <div>
+                SYS.STATUS: ONLINE<br>
+                GRAVITY.FIELD: STABLE
+            </div>
+            <div>
+                COORD: 00.99.21<br>
+                SECURE
+            </div>
+        </div>
+
     </div>
+    
+    <!-- VIGNETTE -->
+    <div class="absolute inset-0 z-20 pointer-events-none bg-[radial-gradient(circle_at_center,transparent_30%,#000000_120%)]"></div>
+
   </div>
 </template>
 
 <style scoped>
-/* --- BASE LAYOUT --- */
-.lobby-wrapper {
-  min-height: 100vh;
-  background-color: #050505;
-  color: white;
-  font-family: 'Segoe UI', sans-serif;
-  overflow-x: hidden;
-  overflow-y: auto;
-  position: relative;
-  display: flex;
-  flex-direction: column;
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@400;600&display=swap');
+
+.font-headers {
+    font-family: 'Orbitron', sans-serif;
 }
-
-/* --- BACKGROUND LAYERS --- */
-.bg-layer {
-  position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-  background-image: radial-gradient(white 1px, transparent 1px);
-  opacity: 0.3; z-index: 0;
-  pointer-events: none;
+.font-sans {
+    font-family: 'Rajdhani', sans-serif;
 }
-.stars-sm { background-size: 20px 20px; animation: drift 100s linear infinite; }
-.stars-md { background-size: 50px 50px; opacity: 0.1; animation: drift 150s linear infinite; }
-@keyframes drift { from { background-position: 0 0; } to { background-position: 100px 100px; } }
-
-.scanline {
-  position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-  background: linear-gradient(to bottom, transparent 50%, rgba(0, 0, 0, 0.3) 51%);
-  background-size: 100% 4px; 
-  pointer-events: none; /* Penting agar tidak menghalangi klik */
-  z-index: 50; 
-  opacity: 0.2;
-}
-
-/* --- HUD HEADER --- */
-.header-hud { 
-  position: relative; 
-  z-index: 10; 
-  padding: 20px 40px; 
-  background: linear-gradient(to bottom, rgba(0,0,0,0.8), transparent);
-  pointer-events: none; /* Container header tembus klik */
-}
-
-/* Aktifkan kembali pointer events untuk anak elemen header */
-.header-hud > * { pointer-events: auto; }
-
-.top-bar { display: flex; justify-content: space-between; align-items: center; font-family: monospace; font-size: 0.8rem; color: #888; margin-bottom: 40px; pointer-events: auto; }
-
-.back-btn { 
-  background: rgba(255,255,255,0.05); 
-  border: 1px solid rgba(255,255,255,0.1); 
-  padding: 8px 16px; 
-  border-radius: 4px; 
-  color: white; 
-  font-family: monospace; 
-  cursor: pointer; 
-  transition: all 0.2s; 
-  pointer-events: auto; /* Pastikan tombol back bisa diklik */
-  z-index: 100;
-}
-.back-btn:hover { background: rgba(0, 242, 255, 0.2); border-color: #00f2ff; }
-
-.live-indicator { display: flex; align-items: center; gap: 8px; color: #aaa; }
-.dot { width: 8px; height: 8px; background: red; border-radius: 50%; box-shadow: 0 0 10px red; animation: blink 1s infinite; }
-@keyframes blink { 50% { opacity: 0.5; } }
-
-.title-section { text-align: center; margin-bottom: 20px; pointer-events: none; }
-.main-title { font-size: 4rem; font-weight: 900; letter-spacing: 10px; background: linear-gradient(to bottom, #fff, #888); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin: 0; text-transform: uppercase; filter: drop-shadow(0 0 10px rgba(255,255,255,0.2)); }
-.sub-title { color: #06b6d4; font-family: monospace; letter-spacing: 2px; text-transform: uppercase; font-size: 0.9rem; margin-top: 10px; opacity: 0.8; }
-
-/* --- MISSION CARDS --- */
-.mission-container { 
-  display: flex; justify-content: center; align-items: center; gap: 30px; flex-wrap: wrap; padding: 20px; 
-  position: relative; 
-  z-index: 60; /* LEBIH TINGGI DARI SCANLINE (50) */
-  flex-grow: 1; 
-}
-
-.card-wrapper { perspective: 1000px; }
-
-.mission-card { 
-  width: 320px; min-height: 480px; 
-  background: rgba(10, 10, 15, 0.7); 
-  backdrop-filter: blur(20px); 
-  border: 1px solid rgba(255, 255, 255, 0.1); 
-  border-radius: 16px; 
-  position: relative; 
-  transform-style: preserve-3d; 
-  transition: transform 0.1s ease-out; 
-  display: flex; flex-direction: column; 
-}
-
-.mission-card.locked { filter: grayscale(1); opacity: 0.7; pointer-events: none; }
-
-.glow-border { 
-  position: absolute; top: -1px; left: -1px; right: -1px; bottom: -1px; 
-  border-radius: 16px; 
-  z-index: -1; 
-  opacity: 0; filter: blur(15px); transition: opacity 0.3s; 
-}
-.mission-card:hover .glow-border { opacity: 0.4; }
-.mission-card:hover { border-color: rgba(255,255,255,0.3); }
-
-.card-inner { 
-  padding: 30px; 
-  display: flex; flex-direction: column; height: 100%; 
-  transform: translateZ(20px); 
-  pointer-events: auto; /* Pastikan card inner menerima interaksi mouse */
-}
-
-.card-header { display: flex; justify-content: space-between; font-family: monospace; font-size: 0.7rem; margin-bottom: 30px; letter-spacing: 1px; color: #666; }
-.icon-area { display: flex; justify-content: center; margin-bottom: 30px; transform: translateZ(30px); }
-.icon-circle { width: 80px; height: 80px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 3rem; box-shadow: 0 0 30px rgba(0,0,0,0.5); }
-.mission-title { font-size: 1.8rem; font-weight: 800; margin: 0; text-transform: uppercase; letter-spacing: 2px; line-height: 1; }
-.mission-subtitle { font-family: monospace; color: #888; font-size: 0.8rem; margin-top: 5px; }
-.divider { width: 100%; height: 1px; background: linear-gradient(to right, transparent, rgba(255,255,255,0.2), transparent); margin: 20px 0; }
-.mission-desc { font-size: 0.9rem; color: #ccc; line-height: 1.6; flex-grow: 1; }
-
-/* FIX TOMBOL ACTION */
-.action-btn { 
-  margin-top: 20px; 
-  padding: 15px; 
-  background: rgba(255,255,255,0.05); 
-  border: 1px solid rgba(255,255,255,0.1); 
-  color: white; 
-  text-align: center; text-decoration: none; 
-  font-weight: bold; letter-spacing: 2px; font-size: 0.9rem; 
-  transition: all 0.3s; 
-  position: relative; 
-  overflow: hidden; 
-  display: flex; justify-content: center; align-items: center; gap: 10px;
-  
-  /* PROPERTI PENTING UNTUK FIX KLIK */
-  z-index: 100; 
-  cursor: pointer;
-  pointer-events: auto;
-  transform: translateZ(40px); /* Memaksa tombol timbul di atas elemen lain */
-}
-
-.action-btn:hover { background: var(--accent); border-color: var(--accent); color: black; box-shadow: 0 0 20px var(--accent); }
-
-.locked-btn { margin-top: 20px; padding: 15px; background: #222; border: 1px dashed #444; color: #666; width: 100%; text-align: center; font-family: monospace; cursor: not-allowed; }
-
-/* --- FOOTER HUD --- */
-.footer-hud { padding: 20px; text-align: center; font-family: monospace; font-size: 0.7rem; color: #444; border-top: 1px solid rgba(255,255,255,0.05); }
-.data-block span { margin: 0 10px; }
-
-@media (max-width: 768px) { .main-title { font-size: 2.5rem; letter-spacing: 5px; } .header-hud { padding: 20px; } .mission-container { gap: 20px; } .mission-card { width: 100%; min-height: auto; } }
 </style>

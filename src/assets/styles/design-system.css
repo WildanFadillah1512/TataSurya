@@ -1,0 +1,275 @@
+/* ========================================
+   SOLAR SYSTEM 3D - DESIGN SYSTEM
+   Sci-Fi Space Explorer Theme
+   ======================================== */
+
+/* === FONTS === */
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
+
+/* === GLOBAL RESET === */
+* {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+html,
+body,
+#app {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  background-color: #030712;
+  /* space-950 */
+  overflow: hidden;
+}
+
+body {
+  font-family: 'Inter', system-ui, sans-serif;
+  color: #ffffff;
+}
+
+/* === TYPOGRAPHY UTILITIES === */
+.heading-xl {
+  font-family: 'Orbitron', sans-serif;
+  @apply text-6xl font-black tracking-tight;
+}
+
+.heading-lg {
+  font-family: 'Orbitron', sans-serif;
+  @apply text-4xl font-bold tracking-tight;
+}
+
+.heading-md {
+  font-family: 'Orbitron', sans-serif;
+  @apply text-2xl font-semibold;
+}
+
+.heading-sm {
+  font-family: 'Orbitron', sans-serif;
+  @apply text-xl font-semibold;
+}
+
+.body-lg {
+  font-family: 'Inter', sans-serif;
+  @apply text-lg font-normal leading-relaxed;
+}
+
+.body {
+  font-family: 'Inter', sans-serif;
+  @apply text-base font-normal;
+}
+
+.mono-lg {
+  font-family: 'JetBrains Mono', monospace;
+  @apply text-base tracking-wide;
+}
+
+.mono {
+  font-family: 'JetBrains Mono', monospace;
+  @apply text-sm tracking-wide;
+}
+
+.mono-xs {
+  font-family: 'JetBrains Mono', monospace;
+  @apply text-xs tracking-wider uppercase;
+}
+
+/* === BUTTON COMPONENTS === */
+.btn {
+  @apply px-6 py-3 rounded-xl font-semibold tracking-wide uppercase transition-all duration-300 cursor-pointer;
+  @apply active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed;
+  font-family: 'Inter', sans-serif;
+}
+
+.btn-primary {
+  @apply btn bg-primary-600 text-white hover:bg-primary-500;
+  @apply shadow-glow hover:shadow-glow-lg;
+}
+
+.btn-secondary {
+  @apply btn bg-transparent border-2 border-primary-500 text-primary-400;
+  @apply hover:bg-primary-500/10;
+}
+
+.btn-ghost {
+  @apply btn bg-transparent border border-white/20 text-white;
+  @apply hover:bg-white/10 hover:border-white/40;
+}
+
+.btn-accent {
+  @apply btn bg-secondary-600 text-white hover:bg-secondary-500;
+  @apply shadow-glow-purple;
+}
+
+/* Small button variant */
+.btn-sm {
+  @apply px-4 py-2 text-sm;
+}
+
+/* Large button variant */
+.btn-lg {
+  @apply px-8 py-4 text-lg;
+}
+
+/* === CARD COMPONENTS === */
+.card {
+  @apply bg-gray-900/80 backdrop-blur-xl border border-white/10 rounded-2xl p-6;
+  @apply shadow-2xl;
+}
+
+.card-glow {
+  @apply card border-primary-500/30;
+  box-shadow: 0 0 30px rgba(34, 211, 238, 0.15);
+}
+
+.card-header {
+  @apply border-b border-white/10 pb-4 mb-4;
+}
+
+/* === INPUT COMPONENTS === */
+.input-field {
+  @apply w-full bg-gray-800/50 border border-gray-700 rounded-xl px-4 py-3;
+  @apply text-white placeholder:text-gray-500;
+  @apply focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20;
+  @apply transition-all duration-300;
+  font-family: 'Inter', sans-serif;
+}
+
+.input-field:disabled {
+  @apply opacity-50 cursor-not-allowed;
+}
+
+/* === BADGE COMPONENTS === */
+.badge {
+  @apply inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold tracking-wider uppercase;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.badge-primary {
+  @apply badge bg-primary-500/20 border border-primary-500/30 text-primary-300;
+}
+
+.badge-secondary {
+  @apply badge bg-secondary-500/20 border border-secondary-500/30 text-secondary-400;
+}
+
+.badge-accent {
+  @apply badge bg-accent-500/20 border border-accent-500/30 text-accent-400;
+}
+
+.badge-status {
+  @apply badge bg-white/10 border border-white/20 text-white/70;
+}
+
+
+/* === GLASSMORPHISM UTILITIES === */
+.glass {
+  @apply backdrop-blur-xl bg-white/5 border border-white/10;
+}
+
+.glass-strong {
+  @apply backdrop-blur-2xl bg-white/10 border border-white/20;
+}
+
+/* === TEXT GLOW EFFECTS === */
+.text-glow {
+  text-shadow: 0 0 20px currentColor;
+}
+
+.text-glow-strong {
+  text-shadow: 0 0 30px currentColor, 0 0 60px currentColor;
+}
+
+/* === ANIMATIONS === */
+@keyframes scan-line {
+
+  0%,
+  100% {
+    top: 0%;
+    opacity: 0;
+  }
+
+  50% {
+    opacity: 1;
+  }
+
+  100% {
+    top: 100%;
+    opacity: 0;
+  }
+}
+
+.scan-line {
+  animation: scan-line 3s linear infinite;
+}
+
+/* Fade transitions */
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.5s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
+
+/* === CUSTOM SCROLLBAR (untuk sections yang perlu scroll) === */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 8px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(34, 211, 238, 0.3);
+  border-radius: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(34, 211, 238, 0.5);
+}
+
+/* === LOADING SPINNER === */
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.spinner {
+  @apply inline-block w-8 h-8 border-4 border-primary-500 border-t-transparent rounded-full;
+  animation: spin 1s linear infinite;
+}
+
+/* === HUD FRAME (Optional decorative) === */
+.hud-frame {
+  position: relative;
+}
+
+.hud-frame::before,
+.hud-frame::after {
+  content: '';
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(34, 211, 238, 0.5);
+}
+
+.hud-frame::before {
+  top: 0;
+  left: 0;
+  border-right: none;
+  border-bottom: none;
+}
+
+.hud-frame::after {
+  bottom: 0;
+  right: 0;
+  border-left: none;
+  border-top: none;
+}

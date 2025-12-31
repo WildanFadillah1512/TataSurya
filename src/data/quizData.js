@@ -4,7 +4,7 @@ export const quizData = [
   // --- MATAHARI (ID: 0) ---
   {
     targetId: 0,
-    title: "Misi: Pengetahuan Surya",
+    title: "Misi Matahari",
     questions: [
       {
         q: "Matahari diklasifikasikan sebagai benda langit apa?",
@@ -37,7 +37,7 @@ export const quizData = [
   // --- MERKURIUS (ID: 1) ---
   {
     targetId: 1,
-    title: "Misi: Planet Tercepat",
+    title: "Misi Merkurius",
     questions: [
       {
         q: "Merkurius memegang rekor sebagai planet...",
@@ -70,7 +70,7 @@ export const quizData = [
   // --- VENUS (ID: 2) ---
   {
     targetId: 2,
-    title: "Misi: Bintang Kejora",
+    title: "Misi Venus",
     questions: [
       {
         q: "Venus adalah planet terpanas di Tata Surya karena...",
@@ -103,7 +103,7 @@ export const quizData = [
   // --- BUMI (ID: 3) ---
   {
     targetId: 3,
-    title: "Misi: Planet Biru",
+    title: "Misi Bumi",
     questions: [
       {
         q: "Gas apa yang paling banyak terkandung di atmosfer Bumi?",
@@ -136,7 +136,7 @@ export const quizData = [
   // --- MARS (ID: 4) ---
   {
     targetId: 4,
-    title: "Misi: Planet Merah",
+    title: "Misi Mars",
     questions: [
       {
         q: "Warna merah pada Mars disebabkan oleh...",
@@ -169,7 +169,7 @@ export const quizData = [
   // --- JUPITER (ID: 5) ---
   {
     targetId: 5,
-    title: "Misi: Sang Raksasa",
+    title: "Misi Jupiter",
     questions: [
       {
         q: "Jupiter adalah planet...",
@@ -202,7 +202,7 @@ export const quizData = [
   // --- SATURNUS (ID: 6) ---
   {
     targetId: 6,
-    title: "Misi: Cincin Megah",
+    title: "Misi Saturnus",
     questions: [
       {
         q: "Cincin Saturnus sebagian besar terdiri dari...",
@@ -235,7 +235,7 @@ export const quizData = [
   // --- URANUS (ID: 7) ---
   {
     targetId: 7,
-    title: "Misi: Raksasa Es",
+    title: "Misi Uranus",
     questions: [
       {
         q: "Warna biru-hijau Uranus disebabkan oleh gas...",
@@ -268,7 +268,7 @@ export const quizData = [
   // --- NEPTUNUS (ID: 8) ---
   {
     targetId: 8,
-    title: "Misi: Penjaga Terluar",
+    title: "Misi Neptunus",
     questions: [
       {
         q: "Neptunus adalah planet yang...",
@@ -298,10 +298,10 @@ export const quizData = [
     ]
   },
 
-  // --- BULAN (ID: 9) - Sesuai data planets.js ---
+  // --- BULAN (ID: 9) ---
   {
     targetId: 9,
-    title: "Misi: Satelit Bumi",
+    title: "Misi Bulan",
     questions: [
       {
         q: "Bulan bersinar karena...",
@@ -331,10 +331,10 @@ export const quizData = [
     ]
   },
 
-  // --- EVENTS / FENOMENA (ID String: 'events') ---
+  // --- EVENTS / FENOMENA ---
   {
     targetId: 'events',
-    title: "Misi: Fenomena Angkasa",
+    title: "Misi Fenomena Umum",
     questions: [
       {
         q: "Gerhana Matahari terjadi ketika posisi Bulan berada di...",
@@ -367,7 +367,7 @@ export const quizData = [
   // --- Specific event quizzes ---
   {
     targetId: 'solar-eclipse',
-    title: 'Quiz - Gerhana Matahari',
+    title: 'Misi Gerhana Matahari',
     questions: [
       { q: 'Apa yang menyebabkan Gerhana Matahari?', a: ['Bumi menutupi Matahari', 'Bulan berada di antara Matahari dan Bumi', 'Matahari memadam', 'Awan tebal'], correct: 1 },
       { q: 'Gerhana total tampak ketika...', a: ['Bulan menutupi seluruh piringan Matahari', 'Bulan terlihat kecil', 'Bumi bergetar', 'Matahari lebih dekat'], correct: 0 },
@@ -378,7 +378,7 @@ export const quizData = [
   },
   {
     targetId: 'lunar-eclipse',
-    title: 'Quiz - Gerhana Bulan',
+    title: 'Misi Gerhana Bulan',
     questions: [
       { q: 'Gerhana Bulan terjadi ketika...', a: ['Bumi berada di antara Matahari dan Bulan', 'Bulan menghalangi Matahari', 'Matahari memadam', 'Bumi mendekat'], correct: 0 },
       { q: 'Warna Bulan saat totalitas sering menjadi...', a: ['Merah (blood moon)', 'Biru', 'Hijau', 'Putih terang'], correct: 0 },
@@ -389,7 +389,7 @@ export const quizData = [
   },
   {
     targetId: 'seasons',
-    title: 'Quiz - Pergantian Musim',
+    title: 'Misi Pergantian Musim',
     questions: [
       { q: 'Penyebab utama musim di Bumi adalah...', a: ['Perubahan jarak ke Matahari', 'Kemiringan sumbu rotasi Bumi', 'Perubahan ukuran Bumi', 'Perubahan lautan'], correct: 1 },
       { q: 'Kemiringan sumbu Bumi sekitar...', a: ['5°', '23.5°', '45°', '90°'], correct: 1 },
@@ -400,7 +400,7 @@ export const quizData = [
   },
   {
     targetId: 'day-night',
-    title: 'Quiz - Siang & Malam',
+    title: 'Misi Siang & Malam',
     questions: [
       { q: 'Siang dan malam terjadi karena...', a: ['Revolusi Bumi', 'Rotasi Bumi', 'Gerhana', 'Perubahan suhu'], correct: 1 },
       { q: 'Garis pemisah siang dan malam disebut...', a: ['Equator', 'Terminator', 'Solstice', 'Meridian'], correct: 1 },
@@ -411,7 +411,7 @@ export const quizData = [
   },
   {
     targetId: 'comet',
-    title: 'Quiz - Hujan Komet',
+    title: 'Misi Komet',
     questions: [
       { q: 'Komet terutama terdiri dari...', a: ['Logam cair', 'Gas & debu & es', 'Batuan panas', 'Plasma'], correct: 1 },
       { q: 'Ekor komet terbentuk karena...', a: ['Rotasi cepat', 'Pengaruh Matahari (pemanasan)', 'Gravitasi Bulan', 'Aksi alien'], correct: 1 },

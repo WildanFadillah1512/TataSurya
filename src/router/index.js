@@ -26,11 +26,16 @@ const router = createRouter({
       name: 'events',
       component: () => import('../views/EventsView.vue')
     },
-    
+    {
+      path: '/leaderboard',
+      name: 'leaderboard',
+      component: () => import('../views/LeaderboardView.vue')
+    },
+
     // =======================================================
     // BAGIAN GAMES (Disesuaikan dengan folder src/views/games)
     // =======================================================
-    
+
     {
       path: '/game',
       name: 'game-lobby', // Halaman Menu Utama Game

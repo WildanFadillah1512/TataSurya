@@ -239,6 +239,13 @@ onUnmounted(() => {
       <div class="w-4 h-4 border-b-2 border-r-2 border-white"></div>
     </div>
 
+    <!-- LEADERBOARD BTN -->
+    <div class="absolute top-8 right-8 z-50 pointer-events-auto">
+      <button @click="router.push('/leaderboard')" class="bg-cyan-900/40 border border-cyan-500/30 text-cyan-300 text-[10px] px-3 py-1 rounded font-[Orbitron] tracking-widest hover:bg-cyan-500/20 transition-all">
+        LEADERBOARD
+      </button>
+    </div>
+
   </div>
 </template>
 

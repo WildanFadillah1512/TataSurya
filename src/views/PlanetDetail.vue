@@ -1,247 +1,258 @@
 <template>
-  <div
-    class="relative w-full h-screen bg-black overflow-hidden font-sans select-none text-white pointer-events-auto"
-  >
+  <div class="relative w-full h-screen bg-[#050510] overflow-hidden font-sans select-none text-white">
+    
+    <!-- BACKGROUND & 3D LAYERS -->
     <video
       ref="videoRef"
-      class="absolute inset-0 w-full h-full object-cover z-0 transition-opacity duration-500"
-      :class="isARMode ? 'opacity-100' : 'opacity-0 pointer-events-none'"
+      class="absolute inset-0 w-full h-full object-cover z-0 transition-all duration-700 ease-in-out"
+      :class="isARMode ? 'opacity-100 scale-100' : 'opacity-0 scale-110 pointer-events-none grayscale'"
       playsinline
       muted
       autoplay
     ></video>
-
     <div
       ref="containerRef"
       class="absolute inset-0 z-10 cursor-move active:cursor-grabbing pointer-events-auto"
     ></div>
 
-    <div class="absolute inset-0 z-20 flex flex-col pointer-events-none">
-      <div
-        class="flex justify-between items-start p-4 md:p-8 pointer-events-auto bg-gradient-to-b from-black/90 via-black/40 to-transparent transition-all"
-        :class="isARMode ? 'opacity-0 md:opacity-100' : 'opacity-100'"
-      >
-        <button
-          @click="goBack"
-          class="group flex items-center gap-3 px-4 py-2 rounded-lg bg-white/5 border border-white/10 backdrop-blur hover:bg-white/10 transition-all hover:border-cyan-400/50"
-        >
-          <span class="text-xl">⮌</span>
-          <div class="flex flex-col items-start">
-            <span class="text-[10px] text-gray-400 tracking-widest uppercase"
-              >System</span
-            >
-            <span class="font-bold text-sm tracking-wide">RETURN</span>
-          </div>
-        </button>
+    <!-- ATMOSPHERIC EFFECTS -->
+    <div class="absolute inset-0 z-10 pointer-events-none bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 mix-blend-overlay"></div>
+    <div class="absolute inset-0 z-10 pointer-events-none bg-radial-gradient"></div>
 
-        <div class="flex flex-col items-end">
-          <h1
-            class="text-4xl md:text-6xl font-black text-transparent bg-clip-text bg-gradient-to-r from-cyan-300 to-blue-500 italic uppercase tracking-tighter drop-shadow-[0_0_10px_rgba(6,182,212,0.5)]"
+    <!-- UI LAYER -->
+    <div class="absolute inset-0 z-20 pointer-events-none flex flex-col h-full">
+      
+      <!-- HEADER (Responsive) -->
+      <header class="w-full p-4 md:p-6 flex justify-between items-start transition-all duration-500 z-30" :class="isARMode ? 'opacity-0 -translate-y-10' : 'opacity-100 translate-y-0'">
+        
+        <!-- BACK BUTTON -->
+        <div class="pointer-events-auto">
+          <button
+            @click="goBack"
+            class="group flex items-center gap-3 px-5 py-3 rounded-l-full rounded-r-lg bg-gray-900/80 border-l-4 border-cyan-500 border-y border-r border-white/10 backdrop-blur-md hover:bg-white/10 transition-all shadow-[0_4px_20px_rgba(0,0,0,0.5)]"
           >
+            <span class="text-cyan-400 text-xl group-hover:-translate-x-1 transition-transform">❮</span>
+            <div class="flex flex-col items-start leading-none">
+              <span class="text-[9px] text-cyan-500 tracking-[0.2em] font-mono mb-1">SYSTEM</span>
+              <span class="font-bold text-sm tracking-widest text-gray-100">RETURN</span>
+            </div>
+          </button>
+        </div>
+
+        <!-- PLANET TITLE -->
+        <div class="flex flex-col items-end pointer-events-auto">
+           <div class="flex items-center gap-2 text-[10px] md:text-xs font-mono text-cyan-400/80 tracking-widest mb-1 bg-black/40 px-2 py-1 rounded backdrop-blur-sm border border-white/5">
+             <span class="w-1.5 h-1.5 bg-cyan-400 rounded-full animate-pulse"></span>
+             <span>ID: {{ planetData.id || '00' }}</span>
+             <span class="hidden md:inline text-white/20">|</span>
+             <span class="hidden md:inline">CLASS: PLANETARY</span>
+          </div>
+          <h1 class="text-5xl md:text-7xl font-black text-transparent bg-clip-text bg-gradient-to-r from-white via-cyan-100 to-cyan-400 uppercase tracking-tighter italic drop-shadow-[0_0_15px_rgba(34,211,238,0.5)]">
             {{ planetData.name }}
           </h1>
         </div>
-      </div>
+      </header>
 
-      <div class="flex-1"></div>
-
-      <div
-        v-if="cameraError"
-        class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-red-600/90 text-white p-4 rounded-xl backdrop-blur max-w-xs text-center pointer-events-auto"
-      >
-        <p class="font-bold mb-2">⚠ Error Kamera</p>
-        <p class="text-sm">{{ cameraError }}</p>
-        <button
-          @click="cameraError = null"
-          class="mt-3 bg-white/20 px-4 py-1 rounded text-sm hover:bg-white/30"
+      <!-- DESKTOP CONTAINER (Flex Layout) -->
+      <div class="hidden md:flex flex-1 mx-6 mb-6 gap-6 min-h-0 relative z-20">
+        
+        <!-- LEFT SIDEBAR: INFO PANEL (Desktop) -->
+        <aside 
+          class="w-[420px] flex flex-col pointer-events-auto transition-all duration-500 ease-[cubic-bezier(0.23,1,0.32,1)]"
+          :class="isARMode ? '-translate-x-[120%] opacity-0' : 'translate-x-0 opacity-100'"
         >
-          Tutup
-        </button>
-      </div>
+          <div class="flex-1 bg-black/70 backdrop-blur-2xl border border-white/10 rounded-2xl overflow-hidden flex flex-col shadow-2xl relative group hover:border-cyan-500/30 transition-colors">
+            <!-- DECORATIVE LINES -->
+            <div class="absolute top-0 right-0 p-3 opacity-50"><div class="w-12 h-12 border-t-2 border-r-2 border-cyan-500/30 rounded-tr-xl"></div></div>
+            <div class="absolute bottom-0 left-0 p-3 opacity-50"><div class="w-12 h-12 border-b-2 border-l-2 border-cyan-500/30 rounded-bl-xl"></div></div>
 
-      <div
-        class="absolute right-4 top-24 md:top-1/3 flex flex-col gap-4 pointer-events-auto"
-      >
-        <button
-          @click="toggleAR"
-          class="w-12 h-12 backdrop-blur-md border rounded-xl flex items-center justify-center transition-all group relative overflow-hidden"
-          :class="
-            isARMode
-              ? 'bg-red-500/20 border-red-400 text-red-400 animate-pulse'
-              : 'bg-black/40 border-white/20 text-white hover:border-cyan-400 hover:text-cyan-300'
-          "
-        >
-          <span class="text-xl relative z-10">{{ isARMode ? "✕" : "📷" }}</span>
-          <span
-            class="absolute right-14 bg-black/80 text-white text-[10px] px-2 py-1 rounded border border-white/10 opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap"
-          >
-            {{ isARMode ? "STOP AR" : "START AR" }}
-          </span>
-        </button>
+            <!-- TABS -->
+            <div class="p-2 grid grid-cols-4 gap-1 bg-black/50 border-b border-white/5">
+              <button 
+                v-for="tab in ['stats', 'structure', 'atmosphere', 'facts']" 
+                :key="tab"
+                @click="activeTab = tab"
+                class="relative py-3 flex flex-col items-center justify-center rounded-lg transition-all duration-300 group/btn"
+                :class="activeTab === tab ? 'bg-cyan-500/10 text-cyan-300' : 'hover:bg-white/5 text-gray-500 hover:text-white'"
+              >
+                <span class="text-xl mb-1 filter drop-shadow-md transition-transform group-hover/btn:scale-110">
+                  {{ tab === 'stats' ? '📊' : tab === 'structure' ? '⚙️' : tab === 'atmosphere' ? '🌫️' : '✨' }}
+                </span>
+                <span class="text-[8px] font-bold uppercase tracking-wider opacity-80 md:inline hidden">{{ tab }}</span>
+                <div v-if="activeTab === tab" class="absolute bottom-0 w-1/2 h-[2px] bg-cyan-400 shadow-[0_0_8px_rgba(34,211,238,0.8)] rounded-full"></div>
+              </button>
+            </div>
 
-        <button
-          @click="toggleAudio"
-          :disabled="!speechAvailable"
-          class="w-12 h-12 bg-black/40 backdrop-blur-md border border-white/20 rounded-xl flex items-center justify-center transition-all"
-          :class="
-            isSpeaking
-              ? 'border-green-500 text-green-400 shadow-[0_0_15px_rgba(34,197,94,0.4)] pointer-events-auto'
-              : !speechAvailable
-              ? 'opacity-50 cursor-not-allowed'
-              : 'hover:border-yellow-400 hover:text-yellow-300'
-          "
-        >
-          <span class="text-xl">{{ isSpeaking ? "🔊" : "🔈" }}</span>
-          <div
-            v-if="isSpeaking"
-            class="absolute inset-0 flex items-center justify-center gap-[2px] opacity-30"
-          >
-            <div class="w-1 bg-green-400 animate-wave h-3"></div>
-            <div class="w-1 bg-green-400 animate-wave h-5 delay-75"></div>
-            <div class="w-1 bg-green-400 animate-wave h-2 delay-150"></div>
+            <!-- CONTENT -->
+            <div class="flex-1 overflow-y-auto p-6 scrollbar-hide relative text-shadow-sm">
+              <Transition name="fade-slide" mode="out-in">
+                <component :is="{
+                   'stats': 'div', 'structure': 'div', 'atmosphere': 'div', 'facts': 'div'
+                }[activeTab]" class="space-y-4">
+                  <!-- STATS -->
+                  <div v-if="activeTab === 'stats'" class="grid grid-cols-1 gap-3">
+                     <div v-for="(stat, idx) in [
+                        { icon: '🌡️', label: 'Avg Temp', value: planetData.quickStats?.temperature },
+                        { icon: '⚖️', label: 'Gravity', value: planetData.quickStats?.gravity },
+                        { icon: '📏', label: 'Diameter', value: planetData.quickStats?.diameter },
+                        { icon: '🌙', label: 'Moons', value: planetData.quickStats?.moons?.toString() }
+                      ]" :key="idx" 
+                      class="flex items-center justify-between p-4 rounded-xl bg-white/5 border border-white/5 hover:border-cyan-500/30 transition-all hover:bg-white/10 group/stat"
+                    >
+                      <div class="flex items-center gap-3">
+                        <span class="text-2xl grayscale group-hover/stat:grayscale-0 transition-all duration-500">{{ stat.icon }}</span>
+                        <span class="text-xs font-mono text-gray-400 uppercase tracking-widest">{{ stat.label }}</span>
+                      </div>
+                      <span class="text-lg font-bold text-white font-mono text-right">{{ stat.value || 'N/A' }}</span>
+                    </div>
+                  </div>
+
+                  <!-- TEXT -->
+                  <div v-else-if="activeTab === 'structure' || activeTab === 'atmosphere'" class="relative">
+                    <h3 class="text-lg font-bold text-white mb-4 flex items-center gap-2 border-b border-white/10 pb-2">
+                       <span class="text-cyan-400 font-mono text-xs p-1 bg-cyan-900/40 rounded">///</span>
+                       <span class="tracking-widest">{{ activeTab === 'structure' ? 'COMPOSITION' : 'ATMOSPHERE' }}</span>
+                    </h3>
+                    <p class="text-base leading-relaxed text-gray-300 font-light tracking-wide text-justify">
+                      {{ activeTab === 'structure' ? planetData.structure : planetData.atmosphere }}
+                    </p>
+                  </div>
+
+                  <!-- FACTS -->
+                  <div v-else class="flex flex-col h-full">
+                    <div class="flex justify-between items-end mb-4">
+                       <span class="text-[10px] font-mono text-cyan-400 animate-pulse bg-cyan-950/50 px-2 py-0.5 rounded border border-cyan-800">● LIVE CONNECTION</span>
+                       <span class="text-xs font-mono text-gray-500">{{ currentFactIdx + 1 }} / {{ planetData.funFacts.length }}</span>
+                    </div>
+
+                    <div class="bg-black/80 rounded-lg border border-cyan-500/20 p-5 font-mono text-sm leading-relaxed text-cyan-50 shadow-[inset_0_0_20px_rgba(0,0,0,0.8)] relative overflow-hidden min-h-[120px]">
+                      <div class="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-10 pointer-events-none"></div>
+                      <span class="text-cyan-500 mr-2">➜</span>
+                      {{ displayedFact }}<span class="w-1.5 h-4 bg-cyan-500 inline-block align-middle ml-1 animate-blink"></span>
+                    </div>
+
+                    <div class="mt-6 flex flex-col gap-4">
+                      <div class="flex justify-center gap-1.5">
+                         <button 
+                          v-for="(_, idx) in planetData.funFacts" :key="idx"
+                          @click="currentFactIdx = idx; typeText(planetData.funFacts[idx])"
+                          class="w-full h-1 rounded-full transition-all"
+                          :class="idx === currentFactIdx ? 'bg-cyan-400 shadow-[0_0_8px_cyan]' : 'bg-gray-800 hover:bg-gray-600'"
+                         ></button>
+                      </div>
+                      <button @click="nextFact" class="w-full py-3 bg-white/5 hover:bg-cyan-500/20 border border-white/10 hover:border-cyan-500/50 text-xs font-bold uppercase tracking-widest text-white transition-all rounded-lg flex items-center justify-center gap-2 group/next">
+                         Next Data Entry <span class="group-hover/next:translate-x-1 transition-transform">→</span>
+                      </button>
+                    </div>
+                  </div>
+                </component>
+              </Transition>
+            </div>
+            
+            <!-- QUIZ ACTION -->
+            <div class="p-4 border-t border-white/10 bg-gradient-to-t from-fuchsia-900/40 to-transparent">
+              <button
+                @click="router.push({ name: 'quiz', params: { id: planetData.id }, query: { from: 'planet-detail' } })"
+                class="w-full relative overflow-hidden group bg-fuchsia-600 hover:bg-fuchsia-500 text-white p-4 rounded-xl font-bold uppercase tracking-wider transition-all shadow-[0_0_20px_rgba(192,38,211,0.4)] hover:shadow-[0_0_30px_rgba(192,38,211,0.6)]"
+              >
+                <div class="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300"></div>
+                <span class="relative z-10 flex items-center justify-center gap-2">
+                  <span>🚀</span> LAUNCH MISSION
+                </span>
+              </button>
+            </div>
           </div>
-        </button>
-        <div class="mt-2 text-xs text-right text-slate-400 pointer-events-auto">
-          <div class="whitespace-nowrap">{{ voiceStatusMsg }}</div>
+        </aside>
+
+        <div class="flex-1 pointer-events-none"></div>
+
+        <!-- RIGHT SIDEBAR: TOOLS (Desktop) -->
+        <aside class="flex flex-col gap-4 items-end pointer-events-auto z-30 pt-10">
           <button
-            v-if="!speechAvailable"
-            @click="enableSpeech"
-            class="mt-1 text-xs px-2 py-1 bg-white/5 rounded hover:bg-white/10"
+            @click="router.push('/leaderboard')"
+            class="flex items-center gap-3 px-4 py-2 bg-yellow-500/10 hover:bg-yellow-500/20 border border-yellow-500/30 rounded-lg backdrop-blur-md transition-all group shadow-lg"
           >
-            Aktifkan Suara
+            <span class="text-xl">🏆</span>
+            <span class="text-xs font-bold text-yellow-200 group-hover:text-yellow-100">LEADERBOARD</span>
           </button>
-        </div>
-      </div>
 
-      <div
-        class="w-full pointer-events-auto transition-all duration-500 flex justify-center px-4 pb-6 md:pb-10 translate-y-0 opacity-100"
-      >
-        <div class="relative w-full max-w-4xl group">
-          <div
-            class="absolute -inset-[1px] bg-gradient-to-r from-cyan-500 via-purple-500 to-cyan-500 rounded-2xl opacity-50 blur-sm animate-gradient-xy"
-            :class="isARMode ? 'opacity-20' : 'opacity-50'"
-          ></div>
-
-          <div
-            class="relative rounded-2xl border border-white/10 p-5 md:p-8 overflow-hidden transition-colors duration-500"
-            :class="
-              isARMode
-                ? 'bg-black/40 backdrop-blur-sm'
-                : 'bg-gray-900/80 backdrop-blur-xl'
-            "
-          >
-            <div
-              class="absolute top-0 left-0 w-full h-[2px] bg-cyan-400/50 shadow-[0_0_10px_#22d3ee] animate-scan"
-            ></div>
-            <div
-              class="absolute top-0 left-0 w-4 h-4 border-l-2 border-t-2 border-cyan-400"
-            ></div>
-            <div
-              class="absolute top-0 right-0 w-4 h-4 border-r-2 border-t-2 border-cyan-400"
-            ></div>
-            <div
-              class="absolute bottom-0 left-0 w-4 h-4 border-l-2 border-b-2 border-cyan-400"
-            ></div>
-            <div
-              class="absolute bottom-0 right-0 w-4 h-4 border-r-2 border-b-2 border-cyan-400"
-            ></div>
-
-            <div
-              class="flex justify-between items-center mb-4 border-b border-white/10 pb-2"
-            >
-              <div class="flex items-center gap-2">
-                <span class="text-cyan-400 text-lg">⌬</span>
-                <span
-                  class="font-mono text-xs md:text-sm text-cyan-300 tracking-widest uppercase"
-                >
-                  {{
-                    isARMode ? "AR INTERACTION READY" : "INCOMING TRANSMISSION"
-                  }}
-                </span>
-              </div>
-
-              <div class="flex items-center gap-3">
-                <!-- Progress Indicator -->
-                <div class="flex items-center gap-1.5">
-                  <div
-                    v-for="(fact, index) in planetData.funFacts"
-                    :key="index"
-                    class="transition-all duration-300 rounded-full cursor-pointer hover:scale-125"
-                    :class="[
-                      index === currentFactIdx
-                        ? 'w-6 h-2 bg-cyan-400 shadow-[0_0_8px_rgba(34,211,238,0.6)]'
-                        : index < currentFactIdx
-                        ? 'w-2 h-2 bg-green-500/60'
-                        : 'w-2 h-2 bg-white/20',
-                    ]"
-                    @click="
-                      currentFactIdx = index;
-                      typeText(planetData.funFacts[index]);
-                    "
-                    :title="`Fakta ${index + 1}${
-                      index < currentFactIdx
-                        ? ' (Sudah dibaca)'
-                        : index === currentFactIdx
-                        ? ' (Sedang dibaca)'
-                        : ' (Belum dibaca)'
-                    }`"
-                  ></div>
-                </div>
-
-                <span
-                  class="font-mono text-xs text-gray-400 bg-white/5 px-2 py-1 rounded"
-                >
-                  DATA [0{{ currentFactIdx + 1 }}]
-                </span>
-              </div>
-            </div>
-
-            <div class="flex flex-col md:flex-row gap-6 items-start">
-              <div class="flex-1 min-h-[4rem]">
-                <p
-                  class="text-lg md:text-2xl font-medium leading-relaxed font-mono text-gray-100 text-shadow-sm"
-                >
-                  <span class="text-cyan-400 mr-2">></span>
-                  {{ displayedFact }}<span class="animate-pulse">_</span>
-                </p>
-              </div>
-
-              <div class="flex flex-col gap-3 w-full md:w-auto mt-2 md:mt-0">
-                <div class="flex gap-3">
-                  <button
-                    @click="nextFact"
-                    class="flex-1 md:flex-none relative overflow-hidden bg-cyan-600/20 hover:bg-cyan-600/40 border border-cyan-500/50 text-cyan-300 px-6 py-3 rounded text-sm font-bold tracking-wider uppercase transition-all active:scale-95 group"
-                  >
-                    <span
-                      class="relative z-10 flex items-center justify-center gap-2"
-                      >NEXT <span class="text-xs">⇥</span></span
-                    >
-                  </button>
-                  <button
-                    @click.stop="
-                      router.push({
-                        name: 'quiz',
-                        params: { id: planetData.id },
-                      })
-                    "
-                    class="flex-1 md:flex-none relative overflow-hidden bg-fuchsia-600/20 hover:bg-fuchsia-600/40 border border-fuchsia-500/50 text-fuchsia-300 px-6 py-3 rounded text-sm font-bold tracking-wider uppercase transition-all active:scale-95"
-                  >
-                    <span
-                      class="relative z-10 flex items-center justify-center gap-2"
-                      >QUIZ <span class="text-xs">?</span></span
-                    >
-                  </button>
-                </div>
-              </div>
-            </div>
+          <div class="flex flex-col gap-3 mt-4">
+             <!-- Audio Button -->
+             <div class="relative group flex items-center justify-end">
+               <span class="absolute right-14 bg-black/90 text-white text-[10px] px-2 py-1 rounded border border-white/10 opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">{{ voiceStatusMsg || 'AI Assistant' }}</span>
+               <button @click="toggleAudio" :disabled="!speechAvailable" class="w-12 h-12 rounded-xl backdrop-blur-md border flex items-center justify-center transition-all relative overflow-hidden shadow-lg hover:scale-105 active:scale-95" :class="isSpeaking ? 'bg-emerald-500/20 border-emerald-500 text-emerald-400' : 'bg-black/60 border-white/20 text-white hover:bg-white/20'">
+                  <div v-if="isSpeaking" class="absolute inset-0 flex items-center justify-center gap-[3px] opacity-50"><div class="w-[3px] bg-emerald-400 animate-wave h-3"></div><div class="w-[3px] bg-emerald-400 animate-wave h-5 delay-75"></div><div class="w-[3px] bg-emerald-400 animate-wave h-2 delay-150"></div></div>
+                  <span class="relative z-10 text-xl">{{ isSpeaking ? '🔊' : '🔈' }}</span>
+               </button>
+             </div>
+             
+             <!-- AR Button -->
+             <button @click="toggleAR" class="w-12 h-12 rounded-xl backdrop-blur-md border flex items-center justify-center transition-all relative overflow-hidden shadow-lg hover:scale-105 active:scale-95" :class="isARMode ? 'bg-red-500/20 border-red-500 text-red-500 animate-pulse-slow' : 'bg-black/60 border-white/20 text-white hover:border-cyan-400 hover:text-cyan-400'">
+                <span class="text-xl font-bold">{{ isARMode ? '✕' : 'AR' }}</span>
+             </button>
           </div>
-        </div>
+        </aside>
+
       </div>
+
+      <!-- MOBILE LAYOUT (Tools Top Right, Info Bottom Sheet) -->
+      <div class="md:hidden absolute inset-0 pointer-events-none z-20">
+         
+         <!-- Top Right Tools -->
+         <div class="absolute top-20 right-4 flex flex-col gap-3 pointer-events-auto items-end">
+            <button @click="router.push('/leaderboard')" class="w-10 h-10 flex items-center justify-center rounded-full bg-yellow-500/10 border border-yellow-500/30 text-yellow-200 backdrop-blur-md shadow-lg">
+              <span class="text-sm">🏆</span>
+            </button>
+            <button @click="toggleAudio" :disabled="!speechAvailable" class="w-10 h-10 rounded-full backdrop-blur-md border flex items-center justify-center bg-black/60 border-white/20 text-white shadow-lg" :class="isSpeaking && 'border-emerald-500 text-emerald-400'"><span class="text-sm">{{ isSpeaking ? '🔊' : '🔈' }}</span></button>
+            <button @click="toggleAR" class="w-10 h-10 rounded-full backdrop-blur-md border flex items-center justify-center bg-black/60 border-white/20 text-white shadow-lg"><span class="text-xs font-bold">{{ isARMode ? '✕' : 'AR' }}</span></button>
+         </div>
+
+         <!-- Bottom Sheet Info -->
+         <div 
+            class="absolute bottom-0 left-0 w-full bg-black/80 backdrop-blur-2xl border-t border-white/10 rounded-t-3xl shadow-[0_-5px_30px_rgba(0,0,0,0.8)] transition-transform duration-500 pointer-events-auto flex flex-col max-h-[50vh]"
+            :class="isARMode ? 'translate-y-full' : 'translate-y-0'"
+         >
+            <!-- Drag Handle -->
+            <div class="w-full flex justify-center pt-3 pb-1"><div class="w-12 h-1.5 bg-white/20 rounded-full"></div></div>
+
+            <!-- Tabs Scroll -->
+            <div class="flex overflow-x-auto gap-4 px-6 py-2 pb-0 no-scrollbar border-b border-white/5">
+               <button v-for="tab in ['stats', 'structure', 'atmosphere', 'facts']" :key="tab" @click="activeTab = tab" class="pb-3 text-xs font-bold uppercase tracking-widest whitespace-nowrap transition-colors relative" :class="activeTab === tab ? 'text-cyan-400' : 'text-gray-500'">
+                  {{ tab }}
+                  <div v-if="activeTab === tab" class="absolute bottom-0 left-0 w-full h-0.5 bg-cyan-400 shadow-[0_0_8px_cyan]"></div>
+               </button>
+            </div>
+            
+            <!-- Content Area -->
+            <div class="p-6 overflow-y-auto min-h-[200px]">
+               <div v-if="activeTab === 'stats'" class="grid grid-cols-2 gap-3">
+                  <div v-for="(stat, idx) in [{startLabel:'Temp', val:planetData.quickStats?.temperature}, {startLabel:'Gravity', val:planetData.quickStats?.gravity}, {startLabel:'Diameter', val:planetData.quickStats?.diameter}, {startLabel:'Moons', val:planetData.quickStats?.moons?.toString()}]" :key="idx" class="bg-white/5 p-3 rounded-xl border border-white/5 flex flex-col">
+                     <span class="text-[10px] uppercase text-gray-500 tracking-wider">{{stat.startLabel}}</span>
+                     <span class="text-sm font-bold text-white mt-1">{{stat.val}}</span>
+                  </div>
+               </div>
+               <div v-else-if="activeTab === 'facts'">
+                  <p class="text-sm leading-relaxed text-gray-300 mb-4 font-light">"{{ planetData.funFacts[currentFactIdx] }}"</p>
+                  <button @click="nextFact" class="w-full py-2 bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 rounded-lg text-xs font-bold uppercase">Next Fact</button>
+               </div>
+               <div v-else>
+                  <p class="text-sm leading-relaxed text-gray-300 font-light text-justify">{{ activeTab === 'structure' ? planetData.structure : planetData.atmosphere }}</p>
+               </div>
+               
+               <div class="mt-6 pt-4 border-t border-white/10">
+                 <button @click="router.push({ name: 'quiz', params: { id: planetData.id }, query: { from: 'planet-detail' } })" class="w-full py-3 bg-fuchsia-600 rounded-xl text-white font-bold uppercase text-xs tracking-wider shadow-lg">Start Mission</button>
+               </div>
+            </div>
+         </div>
+      </div>
+    
+    <!-- END UI LAYER -->
     </div>
   </div>
 </template>
 
 <script setup>
+// LOGIKA ANDA TIDAK DIUBAH SAMA SEKALI
 import { ref, onMounted, onUnmounted, computed, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import * as THREE from "three";
@@ -286,6 +297,7 @@ const enableSpeech = async () => {
 };
 const currentFactIdx = ref(0);
 const cameraError = ref(null);
+const activeTab = ref('facts'); // 'stats', 'structure', 'atmosphere', 'facts'
 
 // Typewriter State
 const displayedFact = ref("");
@@ -865,83 +877,48 @@ watch(
 </script>
 
 <style scoped>
-.text-shadow-sm {
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+/* BACKGROUND GRADIENT */
+.bg-radial-gradient {
+  background: radial-gradient(circle at center, transparent 0%, #050510 90%);
 }
-@keyframes scan {
-  0% {
-    top: 0%;
-    opacity: 0;
-  }
-  50% {
-    opacity: 1;
-  }
-  100% {
-    top: 100%;
-    opacity: 0;
-  }
-}
-.animate-scan {
-  animation: scan 3s linear infinite;
-}
+
+/* CUSTOM ANIMATIONS */
 @keyframes wave {
-  0%,
-  100% {
-    height: 30%;
-  }
-  50% {
-    height: 80%;
-  }
+  0%, 100% { height: 30%; }
+  50% { height: 80%; }
 }
 .animate-wave {
   animation: wave 1s ease-in-out infinite;
 }
-@keyframes gradient-xy {
-  0%,
-  100% {
-    background-position: 0% 50%;
-  }
-  50% {
-    background-position: 100% 50%;
-  }
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
 }
-.animate-gradient-xy {
-  background-size: 200% 200%;
-  animation: gradient-xy 3s ease infinite;
+.animate-blink {
+  animation: blink 1s step-end infinite;
 }
-@keyframes slide-up {
-  from {
-    transform: translateY(100%);
-    opacity: 0;
-  }
-  to {
-    transform: translateY(0);
-    opacity: 1;
-  }
+
+/* TRANSITIONS */
+.fade-slide-enter-active,
+.fade-slide-leave-active {
+  transition: all 0.3s ease;
 }
-.animate-slide-up {
-  animation: slide-up 0.4s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+.fade-slide-enter-from {
+  opacity: 0;
+  transform: translateY(10px);
 }
-@keyframes fade-in {
-  from {
-    opacity: 0;
-    transform: scale(0.95);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1);
-  }
+.fade-slide-leave-to {
+  opacity: 0;
+  transform: translateY(-10px);
 }
-.animate-fade-in {
-  animation: fade-in 0.3s ease-out forwards;
+
+/* UTILITY */
+.scrollbar-hide::-webkit-scrollbar {
+    display: none;
 }
-.pb-safe {
-  padding-bottom: env(safe-area-inset-bottom, 20px);
-}
-.delay-75 {
-  animation-delay: 75ms;
-}
-.delay-150 {
-  animation-delay: 150ms;
+.scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
 }
 </style>
