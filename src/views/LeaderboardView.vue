@@ -13,7 +13,8 @@ const activeTab = ref('planet');
 
 const categories = [
   { id: 'planet', label: 'PLANETARY' },
-  { id: 'phenomena', label: 'PHENOMENA' }
+  { id: 'phenomena', label: 'PHENOMENA' },
+  { id: 'games', label: 'MINI GAMES' }
 ];
 
 const switchTab = (id) => {
@@ -30,22 +31,18 @@ const filteredData = computed(() => {
     'Misi Mars', 'Misi Jupiter', 'Misi Saturnus', 'Misi Uranus', 'Misi Neptunus'
   ];
 
-  /* 
-     Kategori PHENOMENA mencakup:
-     - Misi Fenomena Umum
-     - Misi Gerhana Matahari
-     - Misi Gerhana Bulan
-     - Misi Pergantian Musim
-     - Misi Siang & Malam
-     - Misi Komet
-  */
+  const gameMissions = ['GAME 1: MYSTERY', 'GAME 2: ADVENTURE'];
+
+  if (activeTab.value === 'games') {
+    return allData.filter(item => gameMissions.includes(item.type)).slice(0, 50);
+  }
   
   let result = [];
   if (activeTab.value === 'planet') {
     result = allData.filter(item => planetMissions.includes(item.type));
   } else {
-    // Sisanya masuk ke PHENOMENA (Events)
-    result = allData.filter(item => !planetMissions.includes(item.type));
+    // Sisanya masuk ke PHENOMENA (Events) kecuali Games
+    result = allData.filter(item => !planetMissions.includes(item.type) && !gameMissions.includes(item.type));
   }
   return result.slice(0, 50); // Top 50 only
 });

@@ -168,17 +168,27 @@
         </div>
       </div>
     </div>
+
+    <!-- PLAYER NAME MODAL -->
+    <PlayerNameModal 
+      :show="showNameModal" 
+      title="GAME 1: MYSTERY"
+      @submit="handleNameSubmit" 
+    />
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted, computed } from "vue";
+import { ref, onMounted, onUnmounted, computed, watch } from "vue";
 import { useRouter } from "vue-router";
 import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import gsap from "gsap";
+import { useSpaceStore } from "../../stores/spaceStore";
+import PlayerNameModal from "../../components/PlayerNameModal.vue";
 
+const spaceStore = useSpaceStore();
 const router = useRouter();
 const canvasRef = ref(null);
 const modelContainer = ref(null);
@@ -197,6 +207,8 @@ const showParticles = ref(false);
 const totalAttempts = ref(0);
 const correctAttempts = ref(0);
 const showExitModal = ref(false);
+const showNameModal = ref(true);
+const astronautName = ref("");
 
 const finalScore = computed(() => score.value);
 
@@ -378,6 +390,7 @@ const checkAnswer = () => {
 
       if (currentLevel.value >= 10) {
         gameOver.value = true;
+        spaceStore.submitScore(astronautName.value, score.value, "GAME 1: MYSTERY");
       } else {
         currentLevel.value++;
         currentQuestion.value = allQuestions[currentLevel.value - 1];
@@ -401,6 +414,7 @@ const checkAnswer = () => {
     if (lives.value <= 0) {
       setTimeout(() => {
         gameOver.value = true;
+        spaceStore.submitScore(astronautName.value, score.value, "GAME 1: MYSTERY");
       }, 1000);
     } else {
       setTimeout(() => {
@@ -475,6 +489,11 @@ const confirmExit = () => {
 
 const exitToLobby = () => {
   router.push("/game");
+};
+
+const handleNameSubmit = (name) => {
+  astronautName.value = name;
+  showNameModal.value = false;
 };
 
 const getAccuracy = () => {
