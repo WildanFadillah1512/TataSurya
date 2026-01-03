@@ -153,7 +153,7 @@
             <div class="p-4 border-t border-white/10 bg-gradient-to-t from-fuchsia-900/40 to-transparent">
               <button
                 @click="router.push({ name: 'quiz', params: { id: planetData.id }, query: { from: 'planet-detail' } })"
-                class="w-full relative overflow-hidden group bg-fuchsia-600 hover:bg-fuchsia-500 text-white p-4 rounded-xl font-bold uppercase tracking-wider transition-all shadow-[0_0_20px_rgba(192,38,211,0.4)] hover:shadow-[0_0_30px_rgba(192,38,211,0.6)]"
+                class="w-full relative overflow-hidden group bg-cyan-600 hover:bg-cyan-500 text-white p-4 rounded-xl font-bold uppercase tracking-wider transition-all shadow-[0_0_20px_rgba(8,145,178,0.4)] hover:shadow-[0_0_30px_rgba(34,211,238,0.6)]"
               >
                 <div class="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300"></div>
                 <span class="relative z-10 flex items-center justify-center gap-2">
@@ -168,15 +168,16 @@
 
         <!-- RIGHT SIDEBAR: TOOLS (Desktop) -->
         <aside class="flex flex-col gap-4 items-end pointer-events-auto z-30 pt-10">
-          <button
-            @click="router.push('/leaderboard')"
-            class="flex items-center gap-3 px-4 py-2 bg-yellow-500/10 hover:bg-yellow-500/20 border border-yellow-500/30 rounded-lg backdrop-blur-md transition-all group shadow-lg"
-          >
-            <span class="text-xl">🏆</span>
-            <span class="text-xs font-bold text-yellow-200 group-hover:text-yellow-100">LEADERBOARD</span>
-          </button>
-
           <div class="flex flex-col gap-3 mt-4">
+              <!-- Leaderboard Button -->
+              <button
+                v-if="!isARMode"
+                @click="router.push({ path: '/leaderboard', query: { category: 'planets', mission: `Misi ${planetData.name}` } })"
+                class="w-12 h-12 flex items-center justify-center rounded-xl bg-yellow-500/10 hover:bg-yellow-500/20 border border-yellow-500/30 backdrop-blur-md transition-all group shadow-lg text-yellow-200 hover:scale-105 active:scale-95"
+              >
+                <span class="text-xl">🏆</span>
+              </button>
+
              <!-- Audio Button -->
              <div class="relative group flex items-center justify-end">
                <span class="absolute right-14 bg-black/90 text-white text-[10px] px-2 py-1 rounded border border-white/10 opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">{{ voiceStatusMsg || 'AI Assistant' }}</span>
@@ -200,7 +201,7 @@
          
          <!-- Top Right Tools -->
          <div class="absolute top-20 right-4 flex flex-col gap-3 pointer-events-auto items-end">
-            <button @click="router.push('/leaderboard')" class="w-10 h-10 flex items-center justify-center rounded-full bg-yellow-500/10 border border-yellow-500/30 text-yellow-200 backdrop-blur-md shadow-lg">
+            <button v-if="!isARMode" @click="router.push({ path: '/leaderboard', query: { category: 'planets', mission: `Misi ${planetData.name}` } })" class="w-10 h-10 flex items-center justify-center rounded-full bg-yellow-500/10 border border-yellow-500/30 text-yellow-200 backdrop-blur-md shadow-lg">
               <span class="text-sm">🏆</span>
             </button>
             <button @click="toggleAudio" :disabled="!speechAvailable" class="w-10 h-10 rounded-full backdrop-blur-md border flex items-center justify-center bg-black/60 border-white/20 text-white shadow-lg" :class="isSpeaking && 'border-emerald-500 text-emerald-400'"><span class="text-sm">{{ isSpeaking ? '🔊' : '🔈' }}</span></button>
@@ -240,7 +241,7 @@
                </div>
                
                <div class="mt-6 pt-4 border-t border-white/10">
-                 <button @click="router.push({ name: 'quiz', params: { id: planetData.id }, query: { from: 'planet-detail' } })" class="w-full py-3 bg-fuchsia-600 rounded-xl text-white font-bold uppercase text-xs tracking-wider shadow-lg">Start Mission</button>
+                 <button @click="router.push({ name: 'quiz', params: { id: planetData.id }, query: { from: 'planet-detail' } })" class="w-full py-3 bg-cyan-600 hover:bg-cyan-500 transition-colors rounded-xl text-white font-bold uppercase text-xs tracking-wider shadow-lg shadow-cyan-500/20">Start Mission</button>
                </div>
             </div>
          </div>

@@ -545,7 +545,7 @@ onMounted(() => {
 });
 onUnmounted(() => {
   window.removeEventListener("resize", handleResize);
-  
+
   // Cleanup event listeners
   if (renderer) {
     renderer.domElement.removeEventListener("pointerdown", onCanvasClick);
@@ -556,7 +556,7 @@ onUnmounted(() => {
   if (onUserPointerUp) {
     window.removeEventListener("pointerup", onUserPointerUp);
   }
-  
+
   if (visibilityHandler) {
     document.removeEventListener("visibilitychange", visibilityHandler);
   }
@@ -575,17 +575,17 @@ onUnmounted(() => {
     renderer.dispose();
     renderer = null;
   }
-  
+
   if (composer) {
     composer = null;
   }
-  
+
   if (scene) {
     scene.traverse((o) => {
       if (o.geometry) o.geometry.dispose();
       if (o.material) {
         const materials = Array.isArray(o.material) ? o.material : [o.material];
-        materials.forEach(m => {
+        materials.forEach((m) => {
           // Dispose textures
           if (m.map) m.map.dispose();
           if (m.normalMap) m.normalMap.dispose();
@@ -598,7 +598,7 @@ onUnmounted(() => {
     scene.clear();
     scene = null;
   }
-  
+
   camera = null;
   controls = null;
   planetsMesh = [];
@@ -641,12 +641,6 @@ onUnmounted(() => {
           </div>
 
           <div class="flex gap-3 items-center pointer-events-auto">
-             <button
-              @click="router.push('/leaderboard')"
-              class="px-4 py-2 bg-yellow-500/10 hover:bg-yellow-500/80 border border-yellow-500/50 rounded-lg text-white text-xs font-bold transition-all backdrop-blur-sm shadow-[0_0_10px_rgba(234,179,8,0.2)]"
-            >
-              🏆 RANKS
-            </button>
             <button
               @click="goBack"
               class="cursor-pointer px-4 py-2 bg-cyan-500/10 hover:bg-cyan-500/80 border border-cyan-500/50 rounded-lg text-white text-xs font-bold transition-all backdrop-blur-sm"

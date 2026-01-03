@@ -21,7 +21,12 @@ const sliderValue = ref(50);
 const statusLabel = ref("");
 
 // Composables
-const { isARMode, cameraError, toggleAR: toggleARComposable, stopAR: stopARComposable } = useAR();
+const {
+  isARMode,
+  cameraError,
+  toggleAR: toggleARComposable,
+  stopAR: stopARComposable,
+} = useAR();
 const { createCometShower, updateComets } = useComet();
 
 // Audio State
@@ -183,10 +188,9 @@ const initThree = () => {
   renderer = new THREE.WebGLRenderer({
     canvas: canvasRef.value,
     antialias: true,
-    alpha: true, // PENTING: Izinkan transparansi
+    alpha: true,
   });
 
-  // Default tidak transparan (background color dari scene)
   renderer.setClearColor(0x000000, 0);
 
   renderer.setSize(w, h);
@@ -195,7 +199,6 @@ const initThree = () => {
   renderer.outputEncoding = THREE.sRGBEncoding;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
 
-  // --- SETUP POST-PROCESSING (BLOOM) ---
   const renderPass = new RenderPass(scene, camera);
   const bloomPass = new UnrealBloomPass(
     new THREE.Vector2(w, h),
@@ -546,14 +549,12 @@ const createStarfield = () => {
   scene.add(starSystem);
 };
 
-// --- RENDER LOOP (KUNCI PERBAIKAN) ---
 const animate = () => {
   animationFrameId = requestAnimationFrame(animate);
   const dt = clock.getDelta();
   controls.update();
   if (starSystem) starSystem.rotation.z += 0.0002;
 
-  // Update comets using composable
   if (cometGroup && cometGroup.children.length) {
     updateComets(cometGroup, dt);
   }
@@ -561,12 +562,10 @@ const animate = () => {
   const t = sliderValue.value / 100;
   updateSceneAtT(t);
 
-  // FIX: JIKA AR NYALA, JANGAN PAKAI COMPOSER/BLOOM
-  // Composer sering membuat background menjadi hitam pekat (opaque)
   if (isARMode.value) {
-    renderer.render(scene, camera); // Render standar (support transparansi)
+    renderer.render(scene, camera);
   } else {
-    composer.render(); // Render cantik dengan Bloom (Space mode)
+    composer.render();
   }
 };
 
@@ -582,10 +581,10 @@ const nextScene = () => {
 const startSceneQuiz = () => {
   const sceneConf = scenes[activeIndex.value];
   if (sceneConf && sceneConf.id) {
-    router.push({ 
-      name: "quiz", 
+    router.push({
+      name: "quiz",
       params: { id: sceneConf.id },
-      query: { from: 'events' }
+      query: { from: "events" },
     });
   }
 };
@@ -617,10 +616,29 @@ const goBack = () => {
   router.push("/selection");
 };
 
+const goToLeaderboard = () => {
+  const sceneId = scenes[activeIndex.value].id;
+  let missionName = "Misi Fenomena Umum";
+
+  const mapping = {
+    "solar-eclipse": "Misi Gerhana Matahari",
+    "lunar-eclipse": "Misi Gerhana Bulan",
+    seasons: "Misi Pergantian Musim",
+    "day-night": "Misi Siang & Malam",
+    comet: "Misi Komet",
+  };
+
+  if (mapping[sceneId]) missionName = mapping[sceneId];
+
+  router.push({
+    path: "/leaderboard",
+    query: { category: "phenomena", mission: missionName },
+  });
+};
+
 onMounted(() => {
   initThree();
 
-  // Initialize speech
   try {
     speechAvailable.value = speech.isAvailable();
     if (speechAvailable.value) {
@@ -647,41 +665,34 @@ onMounted(() => {
 });
 
 onUnmounted(() => {
-  // Cancel animation frame
   if (animationFrameId) {
     cancelAnimationFrame(animationFrameId);
     animationFrameId = null;
   }
 
-  // Remove event listeners
   window.removeEventListener("resize", onResize);
 
-  // Stop AR dan cleanup stream
   stopAR();
 
-  // Cancel speech
   try {
     speech.cancel();
   } catch (e) {
     console.warn("[Speech] cleanup error", e);
   }
 
-  // Kill all GSAP animations
   gsap.killTweensOf("*");
 
-  // Dispose Three.js resources
   if (scene) {
     scene.traverse((object) => {
-      // Dispose geometry
       if (object.geometry) {
         object.geometry.dispose();
       }
 
-      // Dispose material(s) and textures
       if (object.material) {
-        const materials = Array.isArray(object.material) ? object.material : [object.material];
+        const materials = Array.isArray(object.material)
+          ? object.material
+          : [object.material];
         materials.forEach((material) => {
-          // Dispose textures
           if (material.map) material.map.dispose();
           if (material.normalMap) material.normalMap.dispose();
           if (material.emissiveMap) material.emissiveMap.dispose();
@@ -694,25 +705,21 @@ onUnmounted(() => {
     scene = null;
   }
 
-  // Dispose controls
   if (controls) {
     controls.dispose();
     controls = null;
   }
 
-  // Dispose renderer
   if (renderer) {
     renderer.dispose();
     renderer.domElement = null;
     renderer = null;
   }
 
-  // Dispose composer
   if (composer) {
     composer = null;
   }
 
-  // Clear groups
   if (entityGroup) {
     entityGroup.clear();
     entityGroup = null;
@@ -730,7 +737,7 @@ onUnmounted(() => {
 
 <template>
   <div
-    class="relative w-full min-h-screen bg-black overflow-x-hidden font-sans text-white select-none pointer-events-auto"
+    class="relative w-full min-h-screen bg-black overflow-x-hidden font-sans text-white select-none"
   >
     <video
       ref="videoRef"
@@ -743,7 +750,8 @@ onUnmounted(() => {
 
     <canvas
       ref="canvasRef"
-      class="fixed inset-0 w-full h-full z-10 block outline-none cursor-move pointer-events-auto"
+      class="fixed inset-0 w-full h-full z-10 block outline-none"
+      :style="{ cursor: 'move', pointerEvents: 'auto' }"
     ></canvas>
 
     <div
@@ -765,7 +773,6 @@ onUnmounted(() => {
           >
             {{ scenes[activeIndex].title }}
           </h1>
-
         </div>
 
         <div class="flex items-center gap-3 mb-4">
@@ -790,89 +797,98 @@ onUnmounted(() => {
         </p>
       </div>
 
-      <!-- Combined Bottom Container for tight spacing -->
-      <div class="w-full flex flex-col items-center gap-2 animate-fade-in-up md:gap-4 relative z-50">
-        
-        <!-- BUTTON -->
+      <div
+        class="w-full flex flex-col items-center gap-2 animate-fade-in-up md:gap-4 relative z-50"
+      >
         <button
+          v-if="!isARMode"
           @click="startSceneQuiz"
-          class="group relative overflow-hidden bg-cyan-600 hover:bg-cyan-500 text-white px-8 py-4 rounded-2xl font-black uppercase tracking-widest text-lg shadow-[0_0_30px_rgba(8,145,178,0.5)] hover:shadow-[0_0_50px_rgba(34,211,238,0.7)] transition-all active:scale-95 scale-90 md:scale-100"
+          class="pointer-events-auto group relative overflow-hidden bg-cyan-600 hover:bg-cyan-500 text-white px-8 py-4 rounded-2xl font-black uppercase tracking-widest text-lg shadow-[0_0_30px_rgba(8,145,178,0.5)] hover:shadow-[0_0_50px_rgba(34,211,238,0.7)] transition-all active:scale-95 scale-90 md:scale-100 cursor-pointer"
         >
-          <div class="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-[100%] group-hover:translate-x-[100%] transition-transform duration-700 ease-in-out"></div>
+          <div
+            class="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-[100%] group-hover:translate-x-[100%] transition-transform duration-700 ease-in-out"
+          ></div>
           <span class="relative z-10 flex items-center gap-3">
-            <span class="text-2xl">🚀</span> 
+            <span class="text-2xl">🚀</span>
             <span>LAUNCH MISSION</span>
           </span>
         </button>
 
-        <!-- NAVIGATOR -->
-        <div class="pointer-events-auto w-full max-w-4xl mx-auto flex items-end gap-4">
-            <button @click="prevScene" class="control-btn group">
+        <div
+          class="pointer-events-auto w-full max-w-4xl mx-auto flex items-end gap-4"
+        >
+          <button
+            @click="prevScene"
+            class="control-btn group pointer-events-auto cursor-pointer"
+          >
             <span
-                class="text-[9px] uppercase font-bold text-gray-400 mb-1 group-hover:text-white transition-colors"
-                >Prev</span
+              class="text-[9px] uppercase font-bold text-gray-400 mb-1 group-hover:text-white transition-colors"
+              >Prev</span
             >
             <svg
-                class="w-6 h-6 text-white group-hover:-translate-x-1 transition-transform"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
+              class="w-6 h-6 text-white group-hover:-translate-x-1 transition-transform"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
             >
-                <path
+              <path
                 stroke-linecap="round"
                 stroke-linejoin="round"
                 stroke-width="2"
                 d="M10 19l-7-7m0 0l7-7m-7 7h18"
-                ></path>
+              ></path>
             </svg>
-            </button>
+          </button>
 
+          <div
+            class="flex-1 w-full bg-black/60 backdrop-blur-xl border border-white/10 rounded-3xl p-6 shadow-2xl relative overflow-hidden pointer-events-auto"
+          >
             <div
-            class="flex-1 w-full bg-black/60 backdrop-blur-xl border border-white/10 rounded-3xl p-6 shadow-2xl relative overflow-hidden"
-            >
-            <div
-                class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-cyan-500 to-transparent opacity-50"
+              class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-cyan-500 to-transparent opacity-50"
             ></div>
 
             <div
-                class="flex justify-between text-[10px] uppercase font-bold text-gray-400 mb-4 tracking-wider"
+              class="flex justify-between text-[10px] uppercase font-bold text-gray-400 mb-4 tracking-wider"
             >
-                <span>Start</span>
-                <span class="text-cyan-400 font-mono text-xs"
+              <span>Start</span>
+              <span class="text-cyan-400 font-mono text-xs"
                 >{{ Math.round(sliderValue) }}%</span
-                >
-                <span>End</span>
+              >
+              <span>End</span>
             </div>
 
             <input
-                type="range"
-                v-model="sliderValue"
-                min="0"
-                max="100"
-                step="0.5"
-                class="slider-input w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer"
+              type="range"
+              v-model="sliderValue"
+              min="0"
+              max="100"
+              step="0.5"
+              class="slider-input w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer pointer-events-auto"
             />
-            </div>
+          </div>
 
-            <button @click="nextScene" class="control-btn group">
+          <button
+            @click="nextScene"
+            class="control-btn group pointer-events-auto cursor-pointer"
+          >
             <span
-                class="text-[9px] uppercase font-bold text-gray-400 mb-1 group-hover:text-white transition-colors"
-                >Next</span
+              class="text-[9px] uppercase font-bold text-gray-400 mb-1 group-hover:text-white transition-colors"
+              >Next</span
             >
             <svg
-                class="w-6 h-6 text-white group-hover:translate-x-1 transition-transform"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
+              class="w-6 h-6 text-white group-hover:translate-x-1 transition-transform"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
             >
-                <path
+              <path
                 stroke-linecap="round"
                 stroke-linejoin="round"
                 stroke-width="2"
                 d="M14 5l7 7m0 0l-7 7m7-7H3"
-                ></path>
+              ></path>
             </svg>
-            </button>
+          </button>
         </div>
       </div>
     </div>
@@ -882,7 +898,7 @@ onUnmounted(() => {
     >
       <button
         @click="toggleAR"
-        class="w-12 h-12 backdrop-blur-md border rounded-xl flex items-center justify-center transition-all group relative overflow-hidden shadow-lg"
+        class="w-12 h-12 backdrop-blur-md border rounded-xl flex items-center justify-center transition-all group relative overflow-hidden shadow-lg cursor-pointer pointer-events-auto"
         :class="
           isARMode
             ? 'bg-red-500/20 border-red-400 text-red-400 animate-pulse'
@@ -901,10 +917,10 @@ onUnmounted(() => {
       <button
         @click="toggleAudio"
         :disabled="!speechAvailable"
-        class="w-12 h-12 backdrop-blur-md border border-white/20 rounded-xl flex items-center justify-center transition-all relative group shadow-lg"
+        class="w-12 h-12 backdrop-blur-md border border-white/20 rounded-xl flex items-center justify-center transition-all relative group shadow-lg cursor-pointer pointer-events-auto"
         :class="
           isSpeaking
-            ? 'bg-black/60 border-green-500 text-green-400 shadow-[0_0_15px_rgba(34,197,94,0.4)] pointer-events-auto'
+            ? 'bg-black/60 border-green-500 text-green-400 shadow-[0_0_15px_rgba(34,197,94,0.4)]'
             : !speechAvailable
             ? 'bg-black/40 opacity-50 cursor-not-allowed'
             : 'bg-black/40 hover:border-yellow-400 hover:text-yellow-300'
@@ -928,6 +944,20 @@ onUnmounted(() => {
         </span>
       </button>
 
+      <button
+        v-if="!isARMode"
+        @click="goToLeaderboard"
+        class="w-12 h-12 flex items-center justify-center rounded-xl bg-yellow-500/10 hover:bg-yellow-500/20 border border-yellow-500/30 backdrop-blur-md transition-all group shadow-lg text-yellow-200 hover:scale-105 active:scale-95 relative cursor-pointer pointer-events-auto"
+      >
+        <span class="text-xl">🏆</span>
+
+        <span
+          class="hidden md:block absolute right-14 bg-black/80 text-white text-[10px] px-2 py-1 rounded border border-white/10 opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none"
+        >
+          LEADERBOARD
+        </span>
+      </button>
+
       <div
         v-if="!speechAvailable || voiceStatusMsg"
         class="absolute right-14 top-12 w-32 flex flex-col items-end gap-1"
@@ -941,7 +971,7 @@ onUnmounted(() => {
         <button
           v-if="!speechAvailable"
           @click="enableSpeech"
-          class="text-[9px] px-2 py-1 bg-cyan-600/30 border border-cyan-500/30 text-cyan-200 rounded hover:bg-cyan-600/50 backdrop-blur whitespace-nowrap"
+          class="text-[9px] px-2 py-1 bg-cyan-600/30 border border-cyan-500/30 text-cyan-200 rounded hover:bg-cyan-600/50 backdrop-blur whitespace-nowrap cursor-pointer pointer-events-auto"
         >
           Aktifkan
         </button>
@@ -957,7 +987,7 @@ onUnmounted(() => {
       <p class="text-xs text-red-100 mb-4 leading-relaxed">{{ cameraError }}</p>
       <button
         @click="cameraError = null"
-        class="bg-white/10 border border-white/20 px-6 py-2 rounded-full text-sm hover:bg-white/20 transition-colors"
+        class="bg-white/10 border border-white/20 px-6 py-2 rounded-full text-sm hover:bg-white/20 transition-colors cursor-pointer pointer-events-auto"
       >
         Tutup
       </button>
@@ -968,14 +998,8 @@ onUnmounted(() => {
     >
       <div class="flex gap-3">
         <button
-           @click="router.push('/leaderboard')"
-           class="px-4 py-2 md:px-6 md:py-2 rounded-full bg-yellow-500/10 border border-yellow-500/50 text-white font-bold text-[10px] md:text-xs uppercase hover:bg-yellow-500/80 transition-all shadow-lg backdrop-blur-md shadow-[0_0_10px_rgba(234,179,8,0.2)] flex items-center gap-2"
-        >
-          <span>🏆 RANKS</span>
-        </button>
-        <button
           @click="goBack"
-          class="px-4 py-2 md:px-6 md:py-2 rounded-full bg-black/40 border border-white/10 text-white font-bold text-[10px] md:text-xs uppercase hover:bg-cyan-600 hover:border-cyan-500 transition-all shadow-lg backdrop-blur-md"
+          class="px-4 py-2 md:px-6 md:py-2 rounded-full bg-black/40 border border-white/10 text-white font-bold text-[10px] md:text-xs uppercase hover:bg-cyan-600 hover:border-cyan-500 transition-all shadow-lg backdrop-blur-md cursor-pointer pointer-events-auto"
         >
           Kembali
         </button>
@@ -991,17 +1015,17 @@ video {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  z-index: 0; /* Di belakang canvas dan UI */
+  z-index: 0;
 }
 
 canvas {
-  z-index: 5; /* Di atas video */
+  z-index: 5;
 }
 
 .overlay-ui {
-  z-index: 10; /* Paling depan */
+  z-index: 10;
 }
-/* Custom Slider Styling */
+
 .slider-input::-webkit-slider-thumb {
   -webkit-appearance: none;
   height: 28px;
@@ -1023,7 +1047,6 @@ canvas {
   border-radius: 2px;
 }
 
-/* Button Styling */
 .control-btn {
   height: 84px;
   aspect-ratio: 1 / 1;
@@ -1046,7 +1069,6 @@ canvas {
   transform: scale(0.95);
 }
 
-/* Animations */
 @keyframes fadeInDown {
   from {
     opacity: 0;

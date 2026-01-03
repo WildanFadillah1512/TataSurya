@@ -390,11 +390,50 @@ const onResize = () => {
 
 onMounted(() => { init() })
 onUnmounted(() => {
-    cancelAnimationFrame(animationId)
+    // Cancel animation frame
+    if (animationId) cancelAnimationFrame(animationId)
+    
+    // Remove event listeners
     window.removeEventListener('resize', onResize)
     window.removeEventListener('mousemove', onMouseMove)
     window.removeEventListener('click', onClick)
-    if(renderer) renderer.dispose()
+    
+    // FIXED: Dispose all Three.js resources
+    gates.forEach(gate => {
+        if (gate.ring) {
+            if (gate.ring.geometry) gate.ring.geometry.dispose()
+            if (gate.ring.material) gate.ring.material.dispose()
+        }
+        if (gate.innerRing) {
+            if (gate.innerRing.geometry) gate.innerRing.geometry.dispose()
+            if (gate.innerRing.material) gate.innerRing.material.dispose()
+        }
+        if (gate.horizon) {
+            if (gate.horizon.geometry) gate.horizon.geometry.dispose()
+            if (gate.horizon.material) gate.horizon.material.dispose()
+        }
+        // Remove from scene
+        if (gate.group) scene.remove(gate.group)
+    })
+    gates = []
+    
+    // Dispose starfield
+    if (starSystem) {
+        if (starSystem.geometry) starSystem.geometry.dispose()
+        if (starSystem.material) starSystem.material.dispose()
+        scene.remove(starSystem)
+    }
+    
+    // Dispose composer
+    if (composer) {
+        composer.dispose()
+    }
+    
+    // Dispose renderer
+    if (renderer) {
+        renderer.dispose()
+        renderer.forceContextLoss()
+    }
 })
 
 const currentGate = computed(() => activeIndex.value !== -1 ? portals[activeIndex.value] : null)
@@ -405,22 +444,33 @@ const currentGate = computed(() => activeIndex.value !== -1 ? portals[activeInde
     
     <div ref="containerRef" class="absolute inset-0 z-0"></div>
     
-    <!-- UI LAYER with 3D Transform -->
-    <div ref="uiContainerRef" class="ui-layer absolute inset-0 z-10 pointer-events-none p-6 md:p-12 flex flex-col justify-between transition-opacity duration-500 will-change-transform">
-        
+    <!-- STATIC UI LAYER (No Tilt) -->
+    <div class="absolute inset-0 z-20 pointer-events-none p-6 md:p-12 flex flex-col justify-between">
         <!-- HEADER -->
-        <div class="flex justify-between items-start pointer-events-auto">
-            <div class="flex flex-col">
+        <div class="w-full relative flex justify-between items-start pointer-events-auto">
+            
+            <!-- LEFT: RETURN -->
+             <button @click="router.push('/selection')" class="z-10 px-6 py-2 border border-white/20 hover:bg-white/10 hover:border-white/50 text-white rounded text-xs font-bold tracking-widest transition-all backdrop-blur-md group">
+                <span class="group-hover:-translate-x-1 inline-block transition-transform">&lt;</span> RETURN
+             </button>
+
+            <!-- CENTER: TITLE -->
+            <div class="absolute left-1/2 -translate-x-1/2 top-0 flex flex-col items-center text-center">
                 <div class="text-[10px] md:text-xs font-mono text-cyan-400 tracking-[0.4em] uppercase opacity-70 mb-1">Nexus Protocol</div>
                 <h1 class="text-3xl md:text-5xl font-headers font-bold tracking-widest text-white uppercase drop-shadow-[0_0_10px_rgba(255,255,255,0.3)]">
                     Gate Selection
                 </h1>
             </div>
             
-             <button @click="router.push('/selection')" class="px-6 py-2 border border-white/20 hover:bg-white/10 hover:border-white/50 text-white rounded text-xs font-bold tracking-widest transition-all backdrop-blur-md group">
-                <span class="group-hover:-translate-x-1 inline-block transition-transform">&lt;</span> RETURN
-             </button>
+            <!-- RIGHT: LEADERBOARD -->
+            <button @click="router.push({ path: '/leaderboard', query: { category: 'games' } })" class="z-10 px-6 py-2 border border-cyan-500/50 text-cyan-400 hover:bg-cyan-500/10 hover:border-cyan-400 rounded text-xs font-bold tracking-widest transition-all backdrop-blur-md group shadow-[0_0_10px_rgba(6,182,212,0.2)]">
+                <span class="group-hover:scale-110 inline-block transition-transform">🏆</span> LEADERBOARD
+            </button>
         </div>
+    </div>
+
+    <!-- DYNAMIC UI LAYER with 3D Transform -->
+    <div ref="uiContainerRef" class="ui-layer absolute inset-0 z-10 pointer-events-none p-6 md:p-12 flex flex-col justify-end transition-opacity duration-500 will-change-transform">
 
         <!-- ACTIVE GATE INFO -->
         <div class="absolute bottom-24 left-0 w-full text-center pointer-events-none transition-all duration-300"
@@ -428,7 +478,7 @@ const currentGate = computed(() => activeIndex.value !== -1 ? portals[activeInde
             
             <div v-if="currentGate" class="relative inline-block p-8">
                  <!-- Holographic Backing -->
-                 <div class="absolute inset-0 bg-black/40 backdrop-blur-xl border-x border-white/10 skew-x-12 -z-10 rounded-lg"></div>
+                 <div class="absolute inset-0 bg-transparent backdrop-blur-sm border-x border-white/10 skew-x-12 -z-10 rounded-lg"></div>
                  
                  <div class="text-xs md:text-sm font-mono tracking-[0.4em] uppercase text-gray-400 mb-2">
                      {{ currentGate.sub }}

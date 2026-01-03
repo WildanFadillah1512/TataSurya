@@ -598,6 +598,19 @@ const createStarfield = () => {
 
 const loadPlanetModel = () => {
   if (planetMesh) {
+    // FIXED: Dispose geometry and material before removing
+    planetMesh.traverse((child) => {
+      if (child.isMesh) {
+        if (child.geometry) child.geometry.dispose();
+        if (child.material) {
+          if (Array.isArray(child.material)) {
+            child.material.forEach(mat => mat.dispose());
+          } else {
+            child.material.dispose();
+          }
+        }
+      }
+    });
     scene.remove(planetMesh);
     planetMesh = null;
   }
@@ -668,10 +681,40 @@ onMounted(() => {
 });
 
 onUnmounted(() => {
-  cancelAnimationFrame(animationId);
+  // Cancel animation frame
+  if (animationId) cancelAnimationFrame(animationId);
+  
+  // Remove event listener
   window.removeEventListener("resize", handleResize);
+  
+  // Dispose Three.js resources
+  if (planetMesh) {
+    planetMesh.traverse((child) => {
+      if (child.isMesh) {
+        if (child.geometry) child.geometry.dispose();
+        if (child.material) {
+          if (Array.isArray(child.material)) {
+            child.material.forEach(mat => mat.dispose());
+          } else {
+            child.material.dispose();
+          }
+        }
+      }
+    });
+    scene.remove(planetMesh);
+  }
+  
+  if (starfield) {
+    if (starfield.geometry) starfield.geometry.dispose();
+    if (starfield.material) starfield.material.dispose();
+    scene.remove(starfield);
+  }
+  
   if (controls) controls.dispose();
-  if (renderer) renderer.dispose();
+  if (renderer) {
+    renderer.dispose();
+    renderer.forceContextLoss();
+  }
 });
 </script>
 

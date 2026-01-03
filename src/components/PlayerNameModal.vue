@@ -20,8 +20,9 @@ const handleSubmit = () => {
 </script>
 
 <template>
-  <Transition name="fade">
-    <div v-if="show" class="fixed inset-0 z-[1000] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
+  <Teleport to="body">
+    <Transition name="fade">
+    <div v-if="show" class="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md pointer-events-auto cursor-default" @mousedown.stop @touchstart.stop>
       <div class="w-full max-w-md bg-gray-900/90 border-2 border-cyan-500/30 rounded-2xl p-8 shadow-[0_0_50px_rgba(6,182,212,0.2)] relative overflow-hidden group">
         <!-- Decoration -->
         <div class="absolute -top-10 -right-10 w-32 h-32 bg-cyan-500/10 rounded-full blur-3xl group-hover:bg-cyan-500/20 transition-all duration-700"></div>
@@ -64,6 +65,7 @@ const handleSubmit = () => {
       </div>
     </div>
   </Transition>
+</Teleport>
 </template>
 
 <style scoped>

@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, onUnmounted, computed } from 'vue'
+import { ref, onMounted, onUnmounted, computed, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import * as THREE from 'three'
 import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js'
@@ -9,443 +9,418 @@ import gsap from 'gsap'
 
 const router = useRouter()
 const containerRef = ref(null)
-const uiContainerRef = ref(null)
 
-// --- DATA: SINGULARITY NODES ---
+// --- DATA: THE CRYSTAL NEXUS NODES ---
 const nodes = [
   { 
     id: 0, 
     path: '/explore', 
-    label: 'EXPLORE', 
-    sub: 'SOLAR SYSTEM',
+    label: 'EXPLORATION', 
+    sub: 'SECTOR 01',
     desc: 'Chart the Unknown Worlds',
-    coords: 'Sector 01',
-    color: '#3b82f6', // Deep Blue
-    coreColor: '#ffffff',
+    color: '#0ea5e9', // Sky Blue
+    emissive: '#7dd3fc',
+    iconGeometry: 'sphere' 
   },
   { 
     id: 1, 
     path: '/events', 
-    label: 'ARCHIVE', 
-    sub: 'HISTORY LOGS',
+    label: 'ARCHIVES', 
+    sub: 'SECTOR 09',
     desc: 'Access Ancient Records', 
-    coords: 'Sector 09',
-    color: '#eab308', // Gold
-    coreColor: '#fef08a',
+    color: '#fbbf24', // Amber
+    emissive: '#fcd34d',
+    iconGeometry: 'box'
   },
   { 
     id: 2, 
     path: '/game', 
     label: 'SIMULATION', 
-    sub: 'TACTICAL DRILL',
-    desc: 'Combat Readiness', 
-    coords: 'Sector 99',
+    sub: 'SECTOR 99',
+    desc: 'Tactical Combat Drill', 
     color: '#ef4444', // Red
-    coreColor: '#fecaca',
+    emissive: '#fca5a5',
+    iconGeometry: 'icosahedron'
   }
 ]
 
 const activeIndex = ref(0)
-const isImploding = ref(false)
-const singularityCharge = ref(0)
-const mouse = ref({ x: 0, y: 0 }) 
+const isTransitioning = ref(false)
+const carouselGroup = new THREE.Group()
 
 // --- THREE.JS VARIABLES ---
 let scene, camera, renderer, composer
-let particles, particleGeo
-let glowMesh
+let monoliths = []
+let lights = []
 let animationId
-let clock = new THREE.Clock()
+const clock = new THREE.Clock()
 
 const isMobile = window.innerWidth < 768
-const PARTICLE_COUNT = isMobile ? 15000 : 30000 
 
+// --- 3D SETUP ---
 const init = () => {
   const w = window.innerWidth
   const h = window.innerHeight
 
+  // 1. SCENE
   scene = new THREE.Scene()
-  scene.background = new THREE.Color('#000000') 
-  scene.fog = new THREE.FogExp2('#000000', 0.02)
+  scene.background = new THREE.Color('#050510') // Very dark blue-black
+  scene.fog = new THREE.FogExp2('#050510', 0.02)
 
-  camera = new THREE.PerspectiveCamera(75, w/h, 0.1, 1000)
-  camera.position.z = isMobile ? 35 : 25
-  camera.position.y = 5
-
-  renderer = new THREE.WebGLRenderer({ antialias: false, powerPreference: 'high-performance' })
+  // 2. CAMERA
+  camera = new THREE.PerspectiveCamera(60, w/h, 0.1, 100)
+  camera.position.set(0, 0, 18)
+  
+  // 3. RENDERER
+  renderer = new THREE.WebGLRenderer({ 
+      antialias: true, 
+      alpha: true,
+      powerPreference: 'high-performance' 
+  })
   renderer.setSize(w, h)
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
+  renderer.toneMapping = THREE.ACESFilmicToneMapping
+  renderer.toneMappingExposure = 1.2
   containerRef.value.appendChild(renderer.domElement)
 
-  // -- 1. THE SINGULARITY (BLACK HOLE CORE) --
-  const geometry = new THREE.SphereGeometry(3, 32, 32)
-  const material = new THREE.MeshBasicMaterial({ color: 0x000000 })
-  const blackHole = new THREE.Mesh(geometry, material)
-  scene.add(blackHole)
+  // 4. LIGHTING (Premium Studio Setup)
+  const ambientLight = new THREE.AmbientLight(0xffffff, 0.2)
+  scene.add(ambientLight)
 
-  // -- 2. ACCRETION DISK (Particle System) --
-  const pGeo = new THREE.BufferGeometry()
-  const positions = new Float32Array(PARTICLE_COUNT * 3)
-  const colors = new Float32Array(PARTICLE_COUNT * 3)
-  const sizes = new Float32Array(PARTICLE_COUNT)
+  const spotLight = new THREE.SpotLight(0xffffff, 10)
+  spotLight.position.set(10, 20, 10)
+  spotLight.angle = 0.5
+  spotLight.penumbra = 1
+  scene.add(spotLight)
+
+  const backLight = new THREE.PointLight(0x00ffff, 2, 20)
+  backLight.position.set(-10, 5, -10)
+  scene.add(backLight)
   
-  // Simulation Data (Simplified from State A)
-  const angles = new Float32Array(PARTICLE_COUNT) 
-  const radii = new Float32Array(PARTICLE_COUNT)  
-  const speeds = new Float32Array(PARTICLE_COUNT) 
-  const drifts = new Float32Array(PARTICLE_COUNT) 
+  const fillLight = new THREE.PointLight(0xff00ff, 2, 20)
+  fillLight.position.set(10, -5, -10)
+  scene.add(fillLight)
 
-  for(let i=0; i<PARTICLE_COUNT; i++) {
-      const angle = Math.random() * Math.PI * 2
-      const radius = 5 + Math.random() * 25 
-      
-      const i3 = i * 3
-      positions[i3] = Math.cos(angle) * radius
-      positions[i3+1] = (Math.random() - 0.5) * (radius * 0.1) 
-      positions[i3+2] = Math.sin(angle) * radius
-      
-      colors[i3] = 0.5; colors[i3+1] = 0.5; colors[i3+2] = 0.5
-      sizes[i] = Math.random()
-      
-      angles[i] = angle
-      radii[i] = radius
-      speeds[i] = (1 / radius) * 0.5 
-      drifts[i] = (Math.random() - 0.5) * 0.05
-  }
+  // 5. STARFIELD BACKGROUND
+  createStarfield()
 
-  pGeo.setAttribute('position', new THREE.BufferAttribute(positions, 3))
-  pGeo.setAttribute('color', new THREE.BufferAttribute(colors, 3))
-  pGeo.setAttribute('size', new THREE.BufferAttribute(sizes, 1))
-  pGeo.userData = { angles, radii, speeds, drifts }
+  // 6. BUILD THE MONOLITHS
+  createMonoliths()
+  scene.add(carouselGroup)
 
-  const pMat = new THREE.PointsMaterial({
-      size: 0.1,
-      vertexColors: true,
-      blending: THREE.AdditiveBlending,
-      depthWrite: false,
-      transparent: true,
-      opacity: 0.8
-  })
-
-  particles = new THREE.Points(pGeo, pMat)
-  scene.add(particles)
-
-  // -- 3. GLOW --
-  const glowGeo = new THREE.PlaneGeometry(14, 14)
-  const canvas = document.createElement('canvas')
-  canvas.width = 128; canvas.height = 128
-  const ctx = canvas.getContext('2d')
-  const grad = ctx.createRadialGradient(64,64,0, 64,64,64)
-  grad.addColorStop(0, 'white')
-  grad.addColorStop(1, 'transparent')
-  ctx.fillStyle = grad
-  ctx.fillRect(0,0,128,128)
-  const glowTexture = new THREE.CanvasTexture(canvas)
-  
-  const glowMat = new THREE.MeshBasicMaterial({
-      map: glowTexture,
-      transparent: true,
-      opacity: 0.1, // Subtle glow
-      side: THREE.DoubleSide,
-      blending: THREE.AdditiveBlending,
-      depthWrite: false
-  })
-
-  glowMesh = new THREE.Mesh(glowGeo, glowMat)
-  glowMesh.lookAt(camera.position)
-  scene.add(glowMesh)
-
-  // -- POST PROCESSING --
+  // 7. POST PROCESSING
   const renderPass = new RenderPass(scene, camera)
   const bloomPass = new UnrealBloomPass(new THREE.Vector2(w, h), 1.5, 0.4, 0.85)
-  bloomPass.strength = 1.2
+  bloomPass.strength = 0.8
   bloomPass.radius = 0.5
-  bloomPass.threshold = 0
+  bloomPass.threshold = 0.2
   
   composer = new EffectComposer(renderer)
   composer.addPass(renderPass)
   composer.addPass(bloomPass)
 
   window.addEventListener('resize', onResize)
-  window.addEventListener('mousemove', onMouseMove)
-  window.addEventListener('touchmove', onTouchMove, { passive: false })
+  window.addEventListener('wheel', onWheel)
+  window.addEventListener('touchstart', onTouchStart)
+  window.addEventListener('touchmove', onTouchMove)
+  window.addEventListener('touchend', onTouchEnd)
   
   animate()
   
-  // Entry
-  gsap.from(camera.position, { y: 20, z: 60, duration: 3, ease: "power4.out" })
+  // Intro Animation
+  gsap.from(camera.position, { z: 40, duration: 2.5, ease: "power3.out" })
+  gsap.from(carouselGroup.rotation, { y: Math.PI, duration: 2.5, ease: "power3.out" })
 }
 
+const createStarfield = () => {
+    const geometry = new THREE.BufferGeometry()
+    const count = 3000
+    const positions = new Float32Array(count * 3)
+    const colors = new Float32Array(count * 3)
+
+    for(let i=0; i<count; i++) {
+        const r = 40 + Math.random() * 40
+        const theta = Math.random() * Math.PI * 2
+        const phi = Math.acos((Math.random() * 2) - 1)
+        
+        const x = r * Math.sin(phi) * Math.cos(theta)
+        const y = r * Math.sin(phi) * Math.sin(theta)
+        const z = r * Math.cos(phi)
+        
+        positions[i*3] = x
+        positions[i*3+1] = y
+        positions[i*3+2] = z
+        
+        // Slight tint variations
+        const tint = Math.random() > 0.8 ? 0.8 : 1
+        colors[i*3] = tint; colors[i*3+1] = tint; colors[i*3+2] = tint
+    }
+    
+    geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3))
+    geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3))
+    
+    const material = new THREE.PointsMaterial({
+        size: 0.15,
+        vertexColors: true,
+        transparent: true,
+        opacity: 0.6
+    })
+    
+    const stars = new THREE.Points(geometry, material)
+    scene.add(stars)
+}
+
+const createMonoliths = () => {
+    const radius = 6 // Distance from center
+    const angleStep = (Math.PI * 2) / 3
+    
+    nodes.forEach((node, i) => {
+        const group = new THREE.Group()
+        const angle = i * angleStep
+        
+        // Position in circle
+        group.position.x = Math.sin(angle) * radius
+        group.position.z = Math.cos(angle) * radius // Rearrange to start correctly?
+                                                    // Standard circle logic: sin/cos
+        
+        // Correct rotation to face center initially (or outward)
+        group.rotation.y = angle
+        
+        // --- A. THE GLASS SLAB ---
+        // Premium glass material
+        const glassGeo = new THREE.BoxGeometry(4, 6, 0.5)
+        const glassMat = new THREE.MeshPhysicalMaterial({
+            color: 0xffffff,
+            metalness: 0,
+            roughness: 0,
+            transmission: 1, // Glass
+            thickness: 2.5, // Refraction thickness
+            envMapIntensity: 1,
+            clearcoat: 1,
+            clearcoatRoughness: 0.1,
+            ior: 1.5,
+            attenuationColor: new THREE.Color(node.color),
+            attenuationDistance: 2
+        })
+        const slab = new THREE.Mesh(glassGeo, glassMat)
+        
+        // --- B. INNER GLOWING ICON ---
+        let iconGeo
+        if (node.iconGeometry === 'sphere') iconGeo = new THREE.IcosahedronGeometry(1.2, 1)
+        else if (node.iconGeometry === 'box') iconGeo = new THREE.BoxGeometry(1.8, 1.8, 1.8)
+        else iconGeo = new THREE.OctahedronGeometry(1.5, 0)
+        
+        const iconMat = new THREE.MeshBasicMaterial({
+            color: node.coreColor || node.color,
+            wireframe: true,
+            transparent: true,
+            opacity: 0.8
+        })
+        const icon = new THREE.Mesh(iconGeo, iconMat)
+        
+        // Inner light
+        const innerLight = new THREE.PointLight(node.color, 3, 8)
+        innerLight.position.set(0,0,0)
+        
+        group.add(slab)
+        group.add(icon)
+        group.add(innerLight)
+        
+        // Store refs for animation
+        group.userData = { id: node.id, initialY: group.position.y, icon }
+        monoliths.push(group)
+        carouselGroup.add(group)
+    })
+    
+    // Initial offset to center the first item (Index 0)
+    // If index 0 is at angle 0 (0,0,radius), camera is at (0,0,18).
+    // We want index 0 to be at (0,0,radius) facing camera? 
+    // Actually standard Circle: 0 is at (0, 0, 1) usually. 
+    // Let's settle rotation later via updateCarousel
+    updateCarouselRotation()
+}
+
+// --- ANIMATION LOOP ---
 const animate = () => {
-  animationId = requestAnimationFrame(animate)
-  const time = clock.getElapsedTime()
-  
-  // Updates
-  const positions = particles.geometry.attributes.position.array
-  const colors = particles.geometry.attributes.color.array
-  const { angles, radii, speeds, drifts } = particles.geometry.userData
-  
-  const targetColorObj = new THREE.Color(nodes[activeIndex.value].color)
-  const coreColorObj = new THREE.Color(nodes[activeIndex.value].coreColor)
+    animationId = requestAnimationFrame(animate)
+    const time = clock.getElapsedTime()
+    
+    // Float Monoliths
+    monoliths.forEach((m, i) => {
+        m.userData.icon.rotation.y += 0.01 // Spin icon
+        m.userData.icon.rotation.x = Math.sin(time * 0.5) * 0.2
+        
+        // Gentle hover
+        m.position.y = Math.sin(time + i) * 0.2
+    })
+    
+    // Rotate Starfield slightly?
+    
+    composer.render()
+}
 
-  // Particle Loop
-  for(let i=0; i<PARTICLE_COUNT; i++) {
-      const i3 = i * 3
-      
-      // 1. Orbital Physics
-      let speedMultiplier = isImploding.value ? 5 + (singularityCharge.value/10) : 1
-      angles[i] += speeds[i] * speedMultiplier * 0.2
-      
-      if (isImploding.value || singularityCharge.value > 0) {
-          radii[i] -= 0.1 + (singularityCharge.value / 200)
-          if (radii[i] < 3) radii[i] = 25
-      }
+// --- INTERACTION LOGIC ---
 
-      // 2. Base Position
-      let x = Math.cos(angles[i]) * radii[i]
-      let z = Math.sin(angles[i]) * radii[i]
-      let y = positions[i3+1] // Keep existing Y which includes flattened disk randomness + drift
-      
-      // Apply drift only (Stable Physics)
-      y = (Math.random()-0.5) * (radii[i] * 0.1) + drifts[i]
-
-      // Mode specifics
-      if (activeIndex.value === 1) { // Archive: Cylinder/Rain
-          x = Math.cos(angles[i]) * 8
-          z = Math.sin(angles[i]) * 8
-          y += Math.sin(time + i) * 0.1 
-          y *= 2 
-      } 
-      else if (activeIndex.value === 2) { // Sim: Sphere Chaos
-           x += (Math.random()-0.5) * 0.1
-           z += (Math.random()-0.5) * 0.1
-           y *= 3 
-      }
-
-      positions[i3] = x
-      positions[i3+1] = y
-      positions[i3+2] = z
-      
-      // 3. Color Logic
-      const distFromCenter = Math.sqrt(x*x + z*z)
-      const normalizedDist = Math.max(0, Math.min(1, (distFromCenter - 3) / 20))
-      
-      const mixedColor = coreColorObj.clone().lerp(targetColorObj, normalizedDist)
-      
-      colors[i3] += (mixedColor.r - colors[i3]) * 0.05
-      colors[i3+1] += (mixedColor.g - colors[i3+1]) * 0.05
-      colors[i3+2] += (mixedColor.b - colors[i3+2]) * 0.05
-  }
-  
-  particles.geometry.attributes.position.needsUpdate = true
-  particles.geometry.attributes.color.needsUpdate = true
-
-  // Camera Drift
-  const targetX = mouse.value.x * 2
-  const targetY = 5 + mouse.value.y * 2
-  camera.position.x += (targetX - camera.position.x) * 0.05
-  camera.position.y += (targetY - camera.position.y) * 0.05
-  camera.lookAt(0, 0, 0)
-  glowMesh.lookAt(camera.position)
-  
-  if (singularityCharge.value > 50) {
-      camera.position.x += (Math.random() - 0.5) * 0.5
-      camera.position.y += (Math.random() - 0.5) * 0.5
-  }
-
-  composer.render()
+const updateCarouselRotation = () => {
+    // 3 Items -> 120 deg apart (2PI / 3)
+    // We want activeIndex to be closest to camera (Z+)
+    // If Item 0 is at Angle 0. We rotate group by -Angle0?
+    
+    const targetRotation = -activeIndex.value * (Math.PI * 2 / 3)
+    
+    gsap.to(carouselGroup.rotation, {
+        y: targetRotation,
+        duration: 1.2,
+        ease: "power4.out"
+    })
 }
 
 const next = () => {
-    if (isImploding.value) return
+    if(isTransitioning.value) return
     activeIndex.value = (activeIndex.value + 1) % nodes.length
+    updateCarouselRotation()
 }
 
 const prev = () => {
-    if (isImploding.value) return
+    if(isTransitioning.value) return
     activeIndex.value = (activeIndex.value - 1 + nodes.length) % nodes.length
+    updateCarouselRotation()
 }
 
-let chargeInterval
-const startSequence = () => {
-    if (isImploding.value) return
+const selectItem = () => {
+    if(isTransitioning.value) return
+    isTransitioning.value = true
     
-    chargeInterval = setInterval(() => {
-        singularityCharge.value += 1.5
-        camera.fov = 75 + (singularityCharge.value / 2)
-        camera.updateProjectionMatrix()
-        
-        if (singularityCharge.value >= 100) {
-            clearInterval(chargeInterval)
-            crossEventHorizon()
-        }
-    }, 20)
-}
-
-const stopSequence = () => {
-    if (isImploding.value) return
-    clearInterval(chargeInterval)
-    const decay = setInterval(() => {
-        singularityCharge.value -= 5
-        camera.fov = 75 + (singularityCharge.value / 2)
-        camera.updateProjectionMatrix()
-        
-        if (singularityCharge.value <= 0) {
-            singularityCharge.value = 0
-            camera.fov = 75
-            camera.updateProjectionMatrix()
-            clearInterval(decay)
-        }
-    }, 10)
-}
-
-const crossEventHorizon = () => {
-    isImploding.value = true
-    const targetPath = nodes[activeIndex.value].path
+    // Warp Speed Effect
+    const targetNode = nodes[activeIndex.value]
     
-    gsap.to(camera.position, { 
-        x: 0, 
-        y: 0, 
-        z: 0.1, 
-        duration: 0.8, 
-        ease: "power2.in" 
+    // 1. Zoom Camera Forcefully
+    gsap.to(camera.position, {
+        z: 6, // Go INTO the monolith
+        duration: 0.8,
+        ease: "power2.in"
     })
     
-    gsap.to('.ui-layer', { opacity: 0, scale: 0.8, duration: 0.4 })
-    gsap.to('.blackout-overlay', { opacity: 1, duration: 0.8, delay: 0.1 })
+    // 2. Fade Out UI
+    gsap.to('.ui-layer', { opacity: 0, scale: 0.9, duration: 0.5 })
     
+    // 3. Navigate
     setTimeout(() => {
-        router.push(targetPath)
-    }, 1200)
+        router.push(targetNode.path)
+    }, 800)
 }
 
-const onMouseMove = (e) => {
-  mouse.value.x = (e.clientX / window.innerWidth) * 2 - 1
-  mouse.value.y = -(e.clientY / window.innerHeight) * 2 + 1
-  
-    // 3D HUD TILT
-    if (uiContainerRef.value) {
-        const rx = mouse.value.y * -5
-        const ry = mouse.value.x * 5
-        uiContainerRef.value.style.transform = `perspective(1000px) rotateX(${rx}deg) rotateY(${ry}deg)`
+// Wheel/Scroll Support
+let scrollTimeout
+const onWheel = (e) => {
+    if(isTransitioning.value) return
+    clearTimeout(scrollTimeout)
+    
+    scrollTimeout = setTimeout(() => {
+        if(e.deltaY > 0) next()
+        else prev()
+    }, 50)
+}
+
+// Touch Support
+let touchStartX = 0
+const onTouchStart = (e) => { touchStartX = e.touches[0].clientX }
+const onTouchMove = (e) => {} 
+const onTouchEnd = (e) => {
+    const diff = touchStartX - e.changedTouches[0].clientX
+    if(Math.abs(diff) > 50) {
+        if(diff > 0) next()
+        else prev()
     }
 }
-const onTouchMove = (e) => {
-    const t = e.touches[0]
-    mouse.value.x = (t.clientX / window.innerWidth) * 2 - 1
-    mouse.value.y = -(t.clientY / window.innerHeight) * 2 + 1
-}
+
 const onResize = () => {
-  if(!containerRef.value) return
-  const w = window.innerWidth
-  const h = window.innerHeight
-  camera.aspect = w/h
-  camera.updateProjectionMatrix()
-  renderer.setSize(w, h)
-  composer.setSize(w, h)
+    if(!containerRef.value) return
+    const w = window.innerWidth
+    const h = window.innerHeight
+    camera.aspect = w/h
+    camera.updateProjectionMatrix()
+    renderer.setSize(w, h)
+    composer.setSize(w, h)
 }
 
 onMounted(() => { init() })
 onUnmounted(() => {
     cancelAnimationFrame(animationId)
     window.removeEventListener('resize', onResize)
-    window.removeEventListener('mousemove', onMouseMove)
+    window.removeEventListener('wheel', onWheel)
+    window.removeEventListener('touchstart', onTouchStart)
     window.removeEventListener('touchmove', onTouchMove)
-    if(renderer) renderer.dispose()
+    window.removeEventListener('touchend', onTouchEnd)
+    if(renderer) {
+        renderer.dispose()
+        renderer.forceContextLoss()
+    }
 })
 
 const current = computed(() => nodes[activeIndex.value])
 </script>
 
 <template>
-  <div class="relative w-full h-full bg-black font-sans overflow-hidden select-none touch-manipulation text-white">
+  <div class="relative w-full h-full bg-[#050510] font-sans overflow-hidden select-none text-white">
     
-    <!-- 3D Viewport -->
+    <!-- 3D Canvas -->
     <div ref="containerRef" class="absolute inset-0 z-0"></div>
     
-    <!-- Cinematic Overlays -->
-    <div class="absolute inset-0 z-10 pointer-events-none bg-[radial-gradient(circle_at_center,transparent_0%,#000000_150%)]"></div>
-    <div class="blackout-overlay absolute inset-0 z-50 bg-black opacity-0 pointer-events-none transition-opacity"></div>
+    <!-- Vignette / Overlays -->
+    <div class="absolute inset-0 z-10 pointer-events-none bg-[radial-gradient(circle_at_center,transparent_0%,#000000_120%)]"></div>
 
-    <!-- UI LAYER (Holographic Tilt) -->
-    <div ref="uiContainerRef" class="ui-layer absolute inset-0 z-20 flex flex-col justify-between p-8 md:p-12 transition-all duration-300 will-change-transform">
+    <!-- UI LAYER -->
+    <div class="ui-layer absolute inset-0 z-20 flex flex-col justify-between p-8 md:p-12 pointer-events-none transition-all duration-300">
         
-        <!-- TOP HUD -->
-        <div class="flex justify-between items-start pointer-events-none">
+        <!-- HEADER -->
+        <div class="flex justify-between items-start">
             <div class="flex flex-col gap-1">
-                <h3 class="text-[10px] md:text-xs font-mono text-cyan-400 tracking-[0.4em] uppercase opacity-70">Sector Analysis</h3>
-                <h1 class="text-3xl md:text-5xl font-headers font-bold tracking-tighter" :style="{ color: current.coreColor }">
-                    {{ current.coords }}
+                <div class="text-[10px] md:text-xs font-mono text-cyan-400 tracking-[0.4em] uppercase opacity-70 mb-1">Nexus Interface</div>
+                <h1 class="text-3xl md:text-4xl font-headers font-bold tracking-widest text-white uppercase drop-shadow-[0_0_15px_rgba(255,255,255,0.3)]">
+                    System Select
                 </h1>
             </div>
-            
-            <button
-               @click="router.push('/leaderboard')"
-               class="px-5 py-2 bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/30 rounded text-[10px] font-bold pointer-events-auto transition-all backdrop-blur-md flex items-center gap-3 group tracking-widest uppercase font-mono"
-             >
-               <span class="opacity-50 group-hover:opacity-100 transition-opacity">Rankings</span>
-               <span class="text-yellow-400">🏆</span>
-            </button>
+
         </div>
 
-        <!-- CENTER NAVIGATION (Enhanced Visibility) -->
-        <div class="absolute inset-x-0 top-1/2 -translate-y-1/2 flex justify-between px-4 md:px-20 pointer-events-none">
-            <button @click="prev" class="pointer-events-auto w-16 h-16 md:w-20 md:h-20 flex items-center justify-center rounded-full bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/30 backdrop-blur-sm hover:scale-110 active:scale-95 transition-all group shadow-[0_0_20px_rgba(255,255,255,0.05)] hover:shadow-[0_0_30px_rgba(255,255,255,0.1)]">
-                <span class="text-2xl font-black text-white/50 group-hover:text-white transition-colors">&lt;</span>
-            </button>
-            <button @click="next" class="pointer-events-auto w-16 h-16 md:w-20 md:h-20 flex items-center justify-center rounded-full bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/30 backdrop-blur-sm hover:scale-110 active:scale-95 transition-all group shadow-[0_0_20px_rgba(255,255,255,0.05)] hover:shadow-[0_0_30px_rgba(255,255,255,0.1)]">
-                <span class="text-2xl font-black text-white/50 group-hover:text-white transition-colors">&gt;</span>
-            </button>
-        </div>
-
-        <!-- BOTTOM CONTROLS -->
-        <div class="flex flex-col items-center pointer-events-none">
+        <!-- MAIN INFO (CENTER BOTTOM) -->
+        <div class="absolute bottom-12 md:bottom-20 left-0 w-full text-center flex flex-col items-center">
             
-            <!-- Description Module -->
-            <div class="mb-12 text-center" :class="{ 'opacity-0 blur-sm': isImploding }">
-                <div class="overflow-hidden h-6 mb-2">
-                    <div class="text-[12px] font-mono font-bold tracking-[0.5em] text-cyan-400 uppercase animate-slide-up" :key="current.id">
-                        {{ current.sub }}
-                    </div>
-                </div>
-                <h2 class="text-5xl md:text-8xl font-headers font-black uppercase tracking-tighter leading-none mb-4 mix-blend-overlay opacity-90 transition-all duration-500"
-                    :style="{ textShadow: `0 0 50px ${current.color}` }">
+            <!-- Dynamic Info -->
+            <div class="mb-10 transition-all duration-500 transform" :key="current.id">
+                <div class="text-xs font-mono font-bold tracking-[0.5em] uppercase text-gray-400 mb-2">{{ current.sub }}</div>
+                <h2 class="text-5xl md:text-8xl font-headers font-black uppercase tracking-tight text-transparent bg-clip-text bg-gradient-to-b from-white to-gray-500 mb-4 drop-shadow-2xl">
                     {{ current.label }}
                 </h2>
-                
-                <div class="flex items-center justify-center gap-4 mb-8 opacity-70">
-                    <div class="h-[1px] w-8 bg-white/50"></div>
-                     <p class="text-xs text-white  font-sans tracking-[0.2em] uppercase">
-                        {{ current.desc }}
-                    </p>
-                    <div class="h-[1px] w-8 bg-white/50"></div>
-                </div>
+                <div class="w-16 h-[2px] bg-white/20 mx-auto mb-4"></div>
+                <p class="text-sm md:text-base font-sans tracking-[0.2em] text-cyan-300 uppercase opacity-80">
+                    {{ current.desc }}
+                </p>
             </div>
 
-            <!-- INITIATE BUTTON -->
-            <button
-                @mousedown="startSequence" 
-                @mouseup="stopSequence"
-                @mouseleave="stopSequence"
-                @touchstart.prevent="startSequence"
-                @touchend="stopSequence"
-                class="pointer-events-auto relative group overflow-hidden rounded-sm"
+            <!-- Action Button -->
+            <button 
+                @click="selectItem"
+                class="pointer-events-auto group relative px-12 py-4 bg-white/5 border border-white/20 hover:bg-white/10 hover:border-cyan-400/50 backdrop-blur-md overflow-hidden transition-all duration-300 rounded-sm"
             >
-                <div class="relative px-10 py-5 bg-white/5 border border-white/20 hover:border-white/50 backdrop-blur-md transition-all duration-300">
-                    <!-- Progress Fill -->
-                    <div class="absolute inset-0 bg-white mix-blend-overlay transition-all duration-75 ease-linear origin-left"
-                         :style="{ transform: `scaleX(${singularityCharge / 100})` }"></div>
-                    
-                    <span class="relative z-10 text-xs font-bold tracking-[0.4em] uppercase group-hover:text-white transition-colors">
-                        Initiate Sequence
-                    </span>
-                </div>
-                
-                <div class="absolute -bottom-8 left-1/2 -translate-x-1/2 text-[9px] font-mono text-gray-500 tracking-widest opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
-                    [ HOLD TO CROSS HORIZON ]
-                </div>
+                <div class="absolute inset-0 bg-cyan-500/10 translate-y-full group-hover:translate-y-0 transition-transform duration-300"></div>
+                <span class="relative z-10 text-xs md:text-sm font-bold tracking-[0.4em] uppercase group-hover:text-cyan-300 transition-colors">
+                    INITIALIZE LINK
+                </span>
             </button>
-            
+        </div>
+
+        <!-- NAVIGATION ARROWS (SIDE) -->
+        <div class="absolute inset-y-0 left-4 md:left-12 flex items-center">
+             <button @click="prev" class="pointer-events-auto p-4 md:p-6 rounded-full border border-white/10 hover:bg-white/5 hover:border-white/30 backdrop-blur-md transition-all hover:-translate-x-1 group">
+                 <span class="text-2xl text-white/30 group-hover:text-white">&lt;</span>
+             </button>
+        </div>
+        <div class="absolute inset-y-0 right-4 md:right-12 flex items-center">
+             <button @click="next" class="pointer-events-auto p-4 md:p-6 rounded-full border border-white/10 hover:bg-white/5 hover:border-white/30 backdrop-blur-md transition-all hover:translate-x-1 group">
+                 <span class="text-2xl text-white/30 group-hover:text-white">&gt;</span>
+             </button>
         </div>
 
     </div>
@@ -455,21 +430,6 @@ const current = computed(() => nodes[activeIndex.value])
 <style scoped>
 @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@400;600&display=swap');
 
-.font-headers {
-    font-family: 'Orbitron', sans-serif;
-}
-.font-sans {
-    font-family: 'Rajdhani', sans-serif;
-}
-.font-mono {
-    font-family: monospace; /* Fallback for tech text */
-}
-
-.animate-slide-up {
-    animation: slideUp 0.5s cubic-bezier(0.16, 1, 0.3, 1);
-}
-@keyframes slideUp {
-    from { transform: translateY(100%); opacity: 0; }
-    to { transform: translateY(0); opacity: 1; }
-}
+.font-headers { font-family: 'Orbitron', sans-serif; }
+.font-sans { font-family: 'Rajdhani', sans-serif; }
 </style>

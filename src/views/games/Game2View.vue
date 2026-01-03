@@ -1,6 +1,9 @@
 <template>
-  <div class="game-container relative w-full h-full overflow-hidden bg-black select-none touch-none"
-    @mousedown="onMouseDown" @mouseup="onMouseUp" @touchstart="onTouchStart" @touchend="onTouchEnd">
+  <div class="game-container relative w-full h-full overflow-hidden bg-black"
+    @mousedown="!showNameModal && onMouseDown($event)" 
+    @mouseup="!showNameModal && onMouseUp($event)" 
+    @touchstart="!showNameModal && onTouchStart($event)" 
+    @touchend="!showNameModal && onTouchEnd($event)">
     
     <div ref="canvasContainer" class="w-full h-full absolute inset-0 bg-radial-gradient"></div>
     
@@ -319,12 +322,17 @@ onMounted(() => {
 });
 
 onBeforeUnmount(() => {
-  cancelAnimationFrame(animationId);
+  // Cancel animation frame
+  if (animationId) cancelAnimationFrame(animationId);
+  
+  // Remove event listeners
   window.removeEventListener('resize', onWindowResize);
-  window.removeEventListener('mousemove', onDocumentMouseMove);
-  window.removeEventListener('keydown', onKeyDown);
-  window.removeEventListener('keyup', onKeyUp);
-  if (renderer) renderer.dispose();
+  document.removeEventListener('mousemove', onDocumentMouseMove);
+  document.removeEventListener('keydown', onKeyDown);
+  document.removeEventListener('keyup', onKeyUp);
+  
+  // Dispose Three.js resources
+  cleanupThreeJS();
 });
 
 // NEW: Function to set quality
@@ -392,6 +400,10 @@ function initThree() {
 
 // MODIFIED: Memuat model musuh dan bos untuk setiap level
 async function loadAllAssets() {
+  // FIXED: Reset arrays untuk mencegah penumpukan index
+  enemyTemplates = [];
+  bossTemplates = [];
+  
   const loadModel = (url) => {
     return new Promise((resolve) => {
       loader.load(url, (gltf) => resolve(gltf.scene), undefined, (err) => {
@@ -487,6 +499,7 @@ function createEnvironment() {
 
 // --- INPUT & SKILLS ---
 function onKeyDown(e) {
+  if (showNameModal.value) return; // Don't capture keys when modal is shown
   if (!isPlaying.value) return;
   if (e.code === 'Escape') { togglePause(); return; }
   if(['KeyW','ArrowUp'].includes(e.code)) { inputState.up = true; inputMode.value = 'keyboard'; }
@@ -499,13 +512,14 @@ function onKeyDown(e) {
   if(e.code === 'KeyE') activateTimeSlow();
 }
 function onKeyUp(e) {
+  if (showNameModal.value) return; // Don't capture keys when modal is shown
   if(['KeyW','ArrowUp'].includes(e.code)) inputState.up = false;
   if(['KeyS','ArrowDown'].includes(e.code)) inputState.down = false;
   if(['KeyA','ArrowLeft'].includes(e.code)) inputState.left = false;
   if(['KeyD','ArrowRight'].includes(e.code)) inputState.right = false;
   if(e.code === 'Space') inputState.shoot = false;
 }
-function onMouseDown() { if(isPlaying.value && !isPaused.value) inputState.shoot = true; }
+function onMouseDown() { if(isPlaying.value && !isPaused.value && !showNameModal.value) inputState.shoot = true; }
 function onMouseUp() { inputState.shoot = false; }
 function onTouchStart(e) {}
 function onTouchEnd(e) {}
@@ -1003,6 +1017,56 @@ function victory() {
   }
 }
 
+// --- CLEANUP THREE.JS ---
+function cleanupThreeJS() {
+  // Dispose all geometries and materials
+  const disposeObject = (obj) => {
+    if (obj.geometry) obj.geometry.dispose();
+    if (obj.material) {
+      if (Array.isArray(obj.material)) {
+        obj.material.forEach(mat => mat.dispose());
+      } else {
+        obj.material.dispose();
+      }
+    }
+  };
+  
+  // Clean all game objects
+  [...asteroids, ...repairKits, ...powerUps, ...enemies, ...lasers, ...enemyLasers, ...bossLasers, ...explosions].forEach(obj => {
+    if (obj.mesh) {
+      disposeObject(obj.mesh);
+      scene.remove(obj.mesh);
+    }
+  });
+  
+  if (boss) {
+    disposeObject(boss.mesh);
+    scene.remove(boss.mesh);
+  }
+  
+  // Clear pools
+  laserPool.forEach(mesh => {
+    disposeObject(mesh);
+    scene.remove(mesh);
+  });
+  explosionPool.forEach(exp => {
+    if (exp.mesh) {
+      disposeObject(exp.mesh);
+      scene.remove(exp.mesh);
+    }
+  });
+  
+  // Dispose environment
+  if (starSystem) { disposeObject(starSystem); scene.remove(starSystem); }
+  if (nebulaSystem) { disposeObject(nebulaSystem); scene.remove(nebulaSystem); }
+  
+  // Dispose renderer
+  if (renderer) {
+    renderer.dispose();
+    renderer.forceContextLoss();
+  }
+}
+
 // --- GAME LOOP ---
 function startGame() {
   score.value = 0; health.value = 100; level.value = 1; baseGameSpeed.value = 0.8;
@@ -1011,11 +1075,57 @@ function startGame() {
   isRestPhase.value = false; restPhaseTimer.value = 0;
   nextBossScoreThreshold = 1500; targetX = 0; targetY = 0;
   
-  const cleanup = (arr) => { arr.forEach(o => { if(o.mesh) scene.remove(o.mesh); else scene.remove(o); }); return []; };
-  asteroids = cleanup(asteroids); repairKits = cleanup(repairKits); powerUps = cleanup(powerUps);
-  enemies = cleanup(enemies); lasers = cleanup(lasers); enemyLasers = cleanup(enemyLasers);
-  bossLasers = cleanup(bossLasers); explosions = cleanup(explosions);
-  if (boss) { scene.remove(boss.mesh); boss = null; }
+  // Cleanup with proper disposal
+  const cleanup = (arr) => { 
+    arr.forEach(o => { 
+      const mesh = o.mesh || o;
+      if (mesh) {
+        if (mesh.geometry) mesh.geometry.dispose();
+        if (mesh.material) {
+          if (Array.isArray(mesh.material)) {
+            mesh.material.forEach(mat => mat.dispose());
+          } else {
+            mesh.material.dispose();
+          }
+        }
+        scene.remove(mesh);
+      }
+    }); 
+    return []; 
+  };
+  
+  asteroids = cleanup(asteroids); 
+  repairKits = cleanup(repairKits); 
+  powerUps = cleanup(powerUps);
+  enemies = cleanup(enemies); 
+  lasers = cleanup(lasers); 
+  enemyLasers = cleanup(enemyLasers);
+  bossLasers = cleanup(bossLasers); 
+  explosions = cleanup(explosions);
+  
+  if (boss) { 
+    if (boss.mesh.geometry) boss.mesh.geometry.dispose();
+    if (boss.mesh.material) boss.mesh.material.dispose();
+    scene.remove(boss.mesh); 
+    boss = null; 
+  }
+  
+  // FIXED: Clear object pools to prevent accumulation
+  laserPool.forEach(mesh => {
+    if (mesh.geometry) mesh.geometry.dispose();
+    if (mesh.material) mesh.material.dispose();
+    scene.remove(mesh);
+  });
+  laserPool.length = 0;
+  
+  explosionPool.forEach(exp => {
+    if (exp.mesh) {
+      if (exp.mesh.geometry) exp.mesh.geometry.dispose();
+      if (exp.mesh.material) exp.mesh.material.dispose();
+      scene.remove(exp.mesh);
+    }
+  });
+  explosionPool.length = 0;
 
   cdBlasterPct.value=0; cdShieldPct.value=0; cdTimePct.value=0;
   isShieldActive.value=false; isTimeSlowActive.value=false;
@@ -1290,7 +1400,7 @@ function onWindowResize() {
 </script>
 
 <style scoped>
-.game-container { cursor: none; }
+.game-container { cursor: crosshair; }
 .bg-radial-gradient { background: radial-gradient(circle at center, #1a1a2e 0%, #000000 100%); }
 .hud-panel { @apply bg-gray-900/60 backdrop-blur-md border border-white/10 p-2 md:p-3 rounded-lg shadow-lg; }
 .dpad-btn { @apply absolute w-10 h-10 bg-white/10 border border-white/20 text-white/70 flex items-center justify-center text-sm active:bg-cyan-500/50 active:scale-95 transition-all outline-none select-none; }
