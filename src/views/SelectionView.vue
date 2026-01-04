@@ -383,13 +383,13 @@ const current = computed(() => nodes[activeIndex.value])
     <div class="absolute inset-0 z-10 pointer-events-none bg-[radial-gradient(circle_at_center,transparent_0%,#000000_120%)]"></div>
 
     <!-- UI LAYER -->
-    <div class="ui-layer absolute inset-0 z-20 flex flex-col justify-between p-8 md:p-12 pointer-events-none transition-all duration-300">
+    <div class="ui-layer absolute inset-0 z-20 flex flex-col justify-between p-4 md:p-12 pointer-events-none transition-all duration-300">
         
         <!-- HEADER -->
         <div class="flex justify-between items-start w-full">
             <div class="flex flex-col gap-1">
-                <div class="text-[10px] md:text-xs font-mono text-cyan-400 tracking-[0.4em] uppercase opacity-70 mb-1">Nexus Interface</div>
-                <h1 class="text-3xl md:text-4xl font-headers font-bold tracking-widest text-white uppercase drop-shadow-[0_0_15px_rgba(255,255,255,0.3)]">
+                <div class="text-[8px] md:text-xs font-mono text-cyan-400 tracking-[0.4em] uppercase opacity-70 mb-1">Nexus Interface</div>
+                <h1 class="text-2xl md:text-4xl font-headers font-bold tracking-widest text-white uppercase drop-shadow-[0_0_15px_rgba(255,255,255,0.3)]">
                     System Select
                 </h1>
             </div>
@@ -397,23 +397,23 @@ const current = computed(() => nodes[activeIndex.value])
             <!-- Back Button (Right Aligned, Transparent) -->
             <button 
                 @click="router.push('/')"
-                class="pointer-events-auto px-4 py-2 hover:bg-white/5 border border-white/20 hover:border-cyan-400/50 rounded-lg text-white text-xs font-bold tracking-widest transition-all active:scale-95 flex items-center gap-2"
+                class="pointer-events-auto px-3 py-1.5 md:px-4 md:py-2 hover:bg-white/5 border border-white/20 hover:border-cyan-400/50 rounded-lg text-white text-[10px] md:text-xs font-bold tracking-widest transition-all active:scale-95 flex items-center gap-2"
             >
                 <span>←</span> HOME
             </button>
         </div>
 
         <!-- MAIN INFO (CENTER BOTTOM) -->
-        <div class="absolute bottom-12 md:bottom-20 left-0 w-full text-center flex flex-col items-center">
+        <div class="absolute bottom-16 md:bottom-20 left-0 w-full text-center flex flex-col items-center pointer-events-none">
             
             <!-- Dynamic Info -->
-            <div class="mb-10 transition-all duration-500 transform" :key="current.id">
+            <div class="mb-6 md:mb-10 transition-all duration-500 transform" :key="current.id">
 
-                <h2 class="text-5xl md:text-8xl font-headers font-black uppercase tracking-tight text-transparent bg-clip-text bg-gradient-to-b from-white to-gray-500 mb-4 drop-shadow-2xl">
+                <h2 class="text-4xl md:text-8xl font-headers font-black uppercase tracking-tight text-transparent bg-clip-text bg-gradient-to-b from-white to-gray-500 mb-2 md:mb-4 drop-shadow-2xl">
                     {{ current.label }}
                 </h2>
-                <div class="w-16 h-[2px] bg-white/20 mx-auto mb-4"></div>
-                <p class="text-sm md:text-base font-sans tracking-[0.2em] text-cyan-300 uppercase opacity-80">
+                <div class="w-12 h-[1px] md:w-16 md:h-[2px] bg-white/20 mx-auto mb-2 md:mb-4"></div>
+                <p class="text-xs md:text-base font-sans tracking-[0.2em] text-cyan-300 uppercase opacity-80">
                     {{ current.desc }}
                 </p>
             </div>
@@ -421,24 +421,24 @@ const current = computed(() => nodes[activeIndex.value])
             <!-- Action Button -->
             <button 
                 @click="selectItem"
-                class="pointer-events-auto group relative px-12 py-4 bg-white/5 border border-white/20 hover:bg-white/10 hover:border-cyan-400/50 backdrop-blur-md overflow-hidden transition-all duration-300 rounded-sm"
+                class="pointer-events-auto group relative px-8 py-3 md:px-12 md:py-4 bg-white/5 border border-white/20 hover:bg-white/10 hover:border-cyan-400/50 backdrop-blur-md overflow-hidden transition-all duration-300 rounded-sm"
             >
                 <div class="absolute inset-0 bg-cyan-500/10 translate-y-full group-hover:translate-y-0 transition-transform duration-300"></div>
-                <span class="relative z-10 text-xs md:text-sm font-bold tracking-[0.4em] uppercase group-hover:text-cyan-300 transition-colors">
+                <span class="relative z-10 text-[10px] md:text-sm font-bold tracking-[0.4em] uppercase group-hover:text-cyan-300 transition-colors">
                     INITIALIZE LINK
                 </span>
             </button>
         </div>
 
         <!-- NAVIGATION ARROWS (SIDE) -->
-        <div class="absolute inset-y-0 left-4 md:left-12 flex items-center">
-             <button @click="prev" class="pointer-events-auto p-4 md:p-6 rounded-full border border-white/10 hover:bg-white/5 hover:border-white/30 backdrop-blur-md transition-all hover:-translate-x-1 group">
-                 <span class="text-2xl text-white/30 group-hover:text-white">&lt;</span>
+        <div class="absolute inset-y-0 left-2 md:left-12 flex items-center">
+             <button @click="prev" class="pointer-events-auto p-3 md:p-6 rounded-full border border-white/10 hover:bg-white/5 hover:border-white/30 backdrop-blur-md transition-all hover:-translate-x-1 group active:scale-90">
+                 <span class="text-lg md:text-2xl text-white/30 group-hover:text-white">&lt;</span>
              </button>
         </div>
-        <div class="absolute inset-y-0 right-4 md:right-12 flex items-center">
-             <button @click="next" class="pointer-events-auto p-4 md:p-6 rounded-full border border-white/10 hover:bg-white/5 hover:border-white/30 backdrop-blur-md transition-all hover:translate-x-1 group">
-                 <span class="text-2xl text-white/30 group-hover:text-white">&gt;</span>
+        <div class="absolute inset-y-0 right-2 md:right-12 flex items-center">
+             <button @click="next" class="pointer-events-auto p-3 md:p-6 rounded-full border border-white/10 hover:bg-white/5 hover:border-white/30 backdrop-blur-md transition-all hover:translate-x-1 group active:scale-90">
+                 <span class="text-lg md:text-2xl text-white/30 group-hover:text-white">&gt;</span>
              </button>
         </div>
 

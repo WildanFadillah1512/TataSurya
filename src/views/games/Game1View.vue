@@ -1599,13 +1599,19 @@ onUnmounted(() => {
 
 @media (max-width: 480px) {
   .top-panel {
-    padding: 10px 12px;
+    padding: 30px 12px 10px; /* Increased top padding for mobile safe area */
     gap: 6px;
   }
 
   .stats-panel-left,
   .stats-panel-right {
     gap: 6px;
+  }
+
+  .clue-container {
+    top: 100px; /* Pushed down to avoid overlapping header */
+    width: calc(100% - 24px);
+    padding: 0 12px;
   }
 
   .letter-slot {

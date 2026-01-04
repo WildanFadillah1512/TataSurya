@@ -791,36 +791,36 @@ onUnmounted(() => {
 
         <p
           v-if="!isARMode"
-          class="text-gray-200 text-sm md:text-base leading-relaxed bg-black/50 p-4 rounded-xl border-l-4 border-cyan-500 backdrop-blur-sm max-w-md shadow-2xl transition-all"
+          class="text-gray-200 text-xs md:text-base leading-relaxed bg-black/50 p-3 md:p-4 rounded-xl border-l-4 border-cyan-500 backdrop-blur-sm w-full md:max-w-md shadow-2xl transition-all"
         >
           {{ scenes[activeIndex].description }}
         </p>
       </div>
 
       <div
-        class="w-full flex flex-col items-center gap-2 animate-fade-in-up md:gap-4 relative z-50"
+        class="w-full flex flex-col items-center gap-2 animate-fade-in-up md:gap-4 relative z-50 mb-2 md:mb-0"
       >
         <button
           v-if="!isARMode"
           @click="startSceneQuiz"
-          class="pointer-events-auto group relative overflow-hidden bg-cyan-600 hover:bg-cyan-500 text-white px-8 py-4 rounded-2xl font-black uppercase tracking-widest text-lg shadow-[0_0_30px_rgba(8,145,178,0.5)] hover:shadow-[0_0_50px_rgba(34,211,238,0.7)] transition-all active:scale-95 scale-90 md:scale-100 cursor-pointer"
+          class="pointer-events-auto group relative overflow-hidden bg-cyan-600 hover:bg-cyan-500 text-white px-6 py-3 md:px-8 md:py-4 rounded-xl md:rounded-2xl font-black uppercase tracking-widest text-sm md:text-lg shadow-[0_0_30px_rgba(8,145,178,0.5)] hover:shadow-[0_0_50px_rgba(34,211,238,0.7)] transition-all active:scale-95 scale-100 md:scale-100 cursor-pointer"
         >
           <div
             class="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-[100%] group-hover:translate-x-[100%] transition-transform duration-700 ease-in-out"
           ></div>
-          <span class="relative z-10 flex items-center gap-3">
-            <span class="text-2xl">🚀</span>
+          <span class="relative z-10 flex items-center gap-2 md:gap-3">
+            <span class="text-xl md:text-2xl">🚀</span>
             <span>LAUNCH MISSION</span>
           </span>
         </button>
 
         <div
-          class="pointer-events-auto w-full max-w-4xl mx-auto flex items-end gap-4"
+          class="pointer-events-auto w-full max-w-4xl mx-auto flex items-end gap-2 md:gap-4"
         >
           <button
             v-if="!isARMode"
             @click="prevScene"
-            class="control-btn group pointer-events-auto cursor-pointer"
+            class="control-btn group pointer-events-auto cursor-pointer p-2 md:p-0"
           >
             <span
               class="text-[9px] uppercase font-bold text-gray-400 mb-1 group-hover:text-white transition-colors"
@@ -842,17 +842,17 @@ onUnmounted(() => {
           </button>
 
           <div
-            class="flex-1 w-full bg-black/60 backdrop-blur-xl border border-white/10 rounded-3xl p-6 shadow-2xl relative overflow-hidden pointer-events-auto"
+            class="flex-1 w-full bg-black/60 backdrop-blur-xl border border-white/10 rounded-3xl p-3 md:p-6 shadow-2xl relative overflow-hidden pointer-events-auto"
           >
             <div
               class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-cyan-500 to-transparent opacity-50"
             ></div>
 
             <div
-              class="flex justify-between text-[10px] uppercase font-bold text-gray-400 mb-4 tracking-wider"
+              class="flex justify-between text-[8px] md:text-[10px] uppercase font-bold text-gray-400 mb-2 md:mb-4 tracking-wider"
             >
               <span>Start</span>
-              <span class="text-cyan-400 font-mono text-xs"
+              <span class="text-cyan-400 font-mono text-[10px] md:text-xs"
                 >{{ Math.round(sliderValue) }}%</span
               >
               <span>End</span>
@@ -871,7 +871,7 @@ onUnmounted(() => {
           <button
             v-if="!isARMode"
             @click="nextScene"
-            class="control-btn group pointer-events-auto cursor-pointer"
+            class="control-btn group pointer-events-auto cursor-pointer p-2 md:p-0"
           >
             <span
               class="text-[9px] uppercase font-bold text-gray-400 mb-1 group-hover:text-white transition-colors"

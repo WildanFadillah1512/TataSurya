@@ -116,21 +116,21 @@ onUnmounted(() => {
   <div class="h-screen w-full bg-[#000] text-white font-sans overflow-hidden select-none">
     <canvas ref="canvasRef" class="fixed inset-0 z-0 opacity-40"></canvas>
 
-    <div class="relative z-10 h-full flex flex-col justify-between p-12">
+    <div class="relative z-10 h-full flex flex-col justify-between p-6 md:p-12 safe-area-inset">
       
       <div class="flex justify-between items-start">
         <div class="space-y-1">
-          <h1 class="text-5xl font-extrabold tracking-[0.2em] italic">SOLARIS</h1>
-          <p class="text-[10px] tracking-[0.5em] text-white/40 uppercase">Aperture Science Neural Link</p>
+          <h1 class="text-3xl md:text-5xl font-extrabold tracking-[0.2em] italic">SOLARIS</h1>
+          <p class="text-[8px] md:text-[10px] tracking-[0.5em] text-white/40 uppercase">Aperture Science Neural Link</p>
         </div>
-        <div class="text-right font-mono text-[10px] text-white/30">
+        <div class="text-right font-mono text-[8px] md:text-[10px] text-white/30 hidden md:block">
           <div>LATENCY: 4ms</div>
           <div>ENCRYPTION: RSA_4096</div>
         </div>
       </div>
 
       <div class="flex flex-col items-center justify-center space-y-8">
-        <div class="relative w-64 h-64 flex items-center justify-center z-30">
+        <div class="relative w-48 h-48 md:w-64 md:h-64 flex items-center justify-center z-30">
           <div :class="['absolute inset-0 border border-white/10 rounded-full transition-transform duration-700 pointer-events-none', isHolding ? 'scale-150 opacity-0' : 'scale-100']"></div>
           
           <svg class="w-full h-full transform -rotate-90 pointer-events-none" viewBox="0 0 256 256">
@@ -144,28 +144,28 @@ onUnmounted(() => {
 
           <button 
             @mousedown="startHold" @mouseup="stopHold" @mouseleave="stopHold"
-            @touchstart="startHold" @touchend="stopHold"
-            class="absolute inset-0 m-auto z-50 w-40 h-40 rounded-full bg-white text-black font-black text-xs tracking-widest transition-all active:scale-90 hover:shadow-[0_0_50px_rgba(255,255,255,0.3)] cursor-pointer pointer-events-auto"
+            @touchstart.prevent="startHold" @touchend.prevent="stopHold"
+            class="absolute inset-0 m-auto z-50 w-32 h-32 md:w-40 md:h-40 rounded-full bg-white text-black font-black text-[10px] md:text-xs tracking-widest transition-all active:scale-90 hover:shadow-[0_0_50px_rgba(255,255,255,0.3)] cursor-pointer pointer-events-auto touch-manipulation select-none"
           >
             {{ holdProgress > 0 ? holdProgress + '%' : 'HOLD TO START' }}
           </button>
         </div>
         
         <div class="text-center">
-          <p class="text-sm font-light tracking-[0.8em] text-white/60 animate-pulse">{{ systemStatus }}</p>
+          <p class="text-xs md:text-sm font-light tracking-[0.8em] text-white/60 animate-pulse">{{ systemStatus }}</p>
         </div>
       </div>
 
-      <div class="flex justify-between items-end border-t border-white/5 pt-8">
-        <div class="max-w-xs text-[9px] leading-relaxed text-white/40 uppercase tracking-widest">
+      <div class="flex justify-between items-end border-t border-white/5 pt-4 md:pt-8 gap-4">
+        <div class="max-w-xs text-[8px] md:text-[9px] leading-relaxed text-white/40 uppercase tracking-widest">
           Authorized personnel only. Interaction with the Solaris core may cause temporary temporal displacement.
         </div>
-        <div class="flex gap-8">
+        <div class="flex gap-4 md:gap-8 min-w-max">
           <div class="group cursor-pointer">
-            <div class="text-[10px] text-white/20 group-hover:text-white transition-colors">01. Wildan</div>
+            <div class="text-[8px] md:text-[10px] text-white/20 group-hover:text-white transition-colors">01. Wildan</div>
           </div>
           <div class="group cursor-pointer">
-            <div class="text-[10px] text-white/20 group-hover:text-white transition-colors">02. Meutya</div>
+            <div class="text-[8px] md:text-[10px] text-white/20 group-hover:text-white transition-colors">02. Meutya</div>
           </div>
         </div>
       </div>
