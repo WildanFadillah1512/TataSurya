@@ -367,9 +367,26 @@ const toggleAudio = async () => {
     speech.cancel();
     isSpeaking.value = false;
   } else {
-    const fact = planetData.value.funFacts[currentFactIdx.value];
+    let textToSpeak = "";
+    
+    // Read content based on active tab
+    if (activeTab.value === 'facts') {
+      textToSpeak = planetData.value.funFacts[currentFactIdx.value];
+    } else if (activeTab.value === 'atmosphere') {
+      textToSpeak = `Atmosfer ${planetData.value.name}. ${planetData.value.atmosphere}`;
+    } else if (activeTab.value === 'structure') {
+      textToSpeak = `Struktur ${planetData.value.name}. ${planetData.value.structure}`;
+    } else if (activeTab.value === 'stats') {
+      const stats = planetData.value.quickStats;
+      textToSpeak = `Statistik ${planetData.value.name}. ` +
+        `Suhu: ${stats?.temperature || 'Tidak tersedia'}. ` +
+        `Gravitasi: ${stats?.gravity || 'Tidak tersedia'}. ` +
+        `Diameter: ${stats?.diameter || 'Tidak tersedia'}. ` +
+        `Jumlah bulan: ${stats?.moons || 'Tidak tersedia'}.`;
+    }
+    
     try {
-      await speak(fact);
+      await speak(textToSpeak);
     } catch (e) {
       console.warn(e);
     }

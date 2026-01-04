@@ -174,6 +174,7 @@
       :show="showNameModal" 
       title="GAME 1: MYSTERY"
       @submit="handleNameSubmit" 
+      @back="exitToLobby"
     />
   </div>
 </template>

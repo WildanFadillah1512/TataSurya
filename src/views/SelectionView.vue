@@ -375,11 +375,20 @@ const current = computed(() => nodes[activeIndex.value])
         
         <!-- HEADER -->
         <div class="flex justify-between items-start">
-            <div class="flex flex-col gap-1">
-                <div class="text-[10px] md:text-xs font-mono text-cyan-400 tracking-[0.4em] uppercase opacity-70 mb-1">Nexus Interface</div>
-                <h1 class="text-3xl md:text-4xl font-headers font-bold tracking-widest text-white uppercase drop-shadow-[0_0_15px_rgba(255,255,255,0.3)]">
-                    System Select
-                </h1>
+            <div class="flex items-start gap-4">
+                <!-- Back Button -->
+                <button 
+                    @click="router.push('/')"
+                    class="pointer-events-auto px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/20 hover:border-cyan-400/50 rounded-lg text-white text-xs font-bold tracking-widest transition-all active:scale-95 flex items-center gap-2 backdrop-blur-md"
+                >
+                    <span>←</span> HOME
+                </button>
+                <div class="flex flex-col gap-1">
+                    <div class="text-[10px] md:text-xs font-mono text-cyan-400 tracking-[0.4em] uppercase opacity-70 mb-1">Nexus Interface</div>
+                    <h1 class="text-3xl md:text-4xl font-headers font-bold tracking-widest text-white uppercase drop-shadow-[0_0_15px_rgba(255,255,255,0.3)]">
+                        System Select
+                    </h1>
+                </div>
             </div>
 
         </div>
@@ -389,7 +398,7 @@ const current = computed(() => nodes[activeIndex.value])
             
             <!-- Dynamic Info -->
             <div class="mb-10 transition-all duration-500 transform" :key="current.id">
-                <div class="text-xs font-mono font-bold tracking-[0.5em] uppercase text-gray-400 mb-2">{{ current.sub }}</div>
+
                 <h2 class="text-5xl md:text-8xl font-headers font-black uppercase tracking-tight text-transparent bg-clip-text bg-gradient-to-b from-white to-gray-500 mb-4 drop-shadow-2xl">
                     {{ current.label }}
                 </h2>

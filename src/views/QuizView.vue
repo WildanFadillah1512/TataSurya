@@ -8,7 +8,7 @@
 
     <div v-if="quizSession" class="relative w-full max-w-4xl z-10 flex flex-col h-full max-h-[90vh]">
       
-      <div v-if="gameState !== 'intro'" class="flex justify-between items-center mb-6 px-2 relative z-50">
+      <div v-if="gameState === 'playing'" class="flex justify-between items-center mb-6 px-2 relative z-50">
         <button 
           type="button"
           @click="goBack"
@@ -56,6 +56,13 @@
                   class="relative z-50 w-full bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-bold py-3 rounded-xl disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg transform active:scale-95 font-sans tracking-wider pointer-events-auto cursor-pointer"
                 >
                   MULAI MISI 🚀
+                </button>
+
+                <button 
+                  @click="goBack"
+                  class="relative z-50 w-full mt-3 bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white font-bold py-3 rounded-xl transition-all font-sans tracking-wider pointer-events-auto cursor-pointer border border-white/10"
+                >
+                  KEMBALI
                 </button>
             </div>
         </div>
@@ -212,15 +219,21 @@ onMounted(() => {
 
 // --- NAVIGATION ---
 const goBack = () => {
-  // Gunakan router.back() untuk kembali ke halaman sebelumnya
-  // History stack: PlanetDetail -> Quiz -> Back to PlanetDetail
-  // History stack: EventsView -> Quiz -> Back to EventsView
-  
-  // Check jika ada history (window.history.length > 1)
+  // Gunakan router.back() jika history ada (terbaik untuk UX)
   if (window.history.length > 1) {
     router.back();
+    return;
+  }
+
+  // Fallback berdasarkan 'from' parameter jika history kosong (e.g. refresh)
+  const from = route.query.from;
+  if (from === 'events') {
+    router.push({ name: 'events' });
+  } else if (from === 'planet-detail') {
+    // Kembali ke detail planet (butuh ID)
+    router.push({ name: 'planet-detail', params: { id: route.params.id } });
   } else {
-    // Fallback jika tidak ada history (direct access)
+    // Default fallback
     router.push({ name: 'explore' });
   }
 };

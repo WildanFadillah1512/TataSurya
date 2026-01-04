@@ -17,9 +17,19 @@
       
       <div class="flex flex-col w-full z-10">
         <div class="flex justify-between items-start text-white font-mono w-full">
-          <div class="hud-panel">
-            <h2 class="text-cyan-400 text-[10px] md:text-xs uppercase tracking-widest mb-1">Level {{ level }}</h2>
-            <p class="text-xl md:text-2xl font-bold font-mono nums">SCORE: {{ Math.floor(score) }}</p>
+          <div class="flex items-start gap-3">
+            <!-- Back Button -->
+            <button 
+              v-if="isPlaying"
+              @click="goToLobby"
+              class="pointer-events-auto px-3 py-2 bg-white/10 hover:bg-white/20 border border-white/20 rounded-lg text-white text-xs font-bold tracking-widest transition-all active:scale-95 flex items-center gap-2"
+            >
+              <span>←</span> BACK
+            </button>
+            <div class="hud-panel">
+              <h2 class="text-cyan-400 text-[10px] md:text-xs uppercase tracking-widest mb-1">Level {{ level }}</h2>
+              <p class="text-xl md:text-2xl font-bold font-mono nums">SCORE: {{ Math.floor(score) }}</p>
+            </div>
           </div>
 
           <div class="hud-panel flex flex-col items-end">
@@ -187,17 +197,20 @@
       :show="showNameModal && !isLoading" 
       title="GAME 2: ADVENTURE"
       @submit="handleNameSubmit" 
+      @back="goToLobby"
     />
   </div>
 </template>
 
 <script setup>
 import { ref, reactive, onMounted, onBeforeUnmount } from 'vue';
+import { useRouter } from 'vue-router';
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { useSpaceStore } from '../../stores/spaceStore';
 import PlayerNameModal from '../../components/PlayerNameModal.vue';
 
+const router = useRouter();
 const spaceStore = useSpaceStore();
 
 // --- State ---
@@ -1228,7 +1241,10 @@ function updateGame() {
       }
       if (!hit || l.isUlt) {
         for (let j = enemies.length - 1; j >= 0; j--) {
-          if (laserBox.intersectsBox(new THREE.Box3().setFromObject(enemies[j].mesh))) {
+          // Expand enemy hitbox by 50% for easier hit detection
+          const enemyBox = new THREE.Box3().setFromObject(enemies[j].mesh);
+          enemyBox.expandByScalar(1.5); // Expand hitbox size by 1.5 units
+          if (laserBox.intersectsBox(enemyBox)) {
             enemies[j].hp -= 1;
             if (enemies[j].hp <= 0) {
                 createExplosion(enemies[j].mesh.position);
@@ -1369,6 +1385,10 @@ function gameOver() {
 function handleNameSubmit(name) {
   astronautName.value = name;
   showNameModal.value = false;
+}
+
+function goToLobby() {
+  router.push('/game');
 }
 
 function animate() {

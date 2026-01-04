@@ -6,16 +6,24 @@ const props = defineProps({
   title: {
     type: String,
     default: 'DATA TRANSMISSION'
+  },
+  showBack: {
+    type: Boolean,
+    default: true
   }
 });
 
-const emit = defineEmits(['submit']);
+const emit = defineEmits(['submit', 'back']);
 const playerName = ref('');
 
 const handleSubmit = () => {
   if (playerName.value.trim().length >= 3) {
     emit('submit', playerName.value.trim());
   }
+};
+
+const handleBack = () => {
+  emit('back');
 };
 </script>
 
@@ -55,6 +63,15 @@ const handleSubmit = () => {
               class="w-full py-4 bg-gradient-to-r from-cyan-600 to-blue-600 rounded-xl font-bold tracking-widest text-white transition-all hover:scale-[1.02] active:scale-95 disabled:opacity-50 disabled:grayscale disabled:cursor-not-allowed shadow-[0_4px_20px_rgba(8,145,178,0.4)]"
             >
               INITIALIZE MISSION
+            </button>
+            
+            <!-- Back Button -->
+            <button 
+              v-if="showBack"
+              @click="handleBack"
+              class="w-full py-3 bg-white/5 border border-white/10 rounded-xl font-bold tracking-widest text-gray-400 hover:text-white hover:bg-white/10 transition-all flex items-center justify-center gap-2"
+            >
+              <span>←</span> KEMBALI
             </button>
             
             <p v-if="playerName.trim().length > 0 && playerName.trim().length < 3" class="text-red-400 text-[10px] font-mono animate-pulse">
