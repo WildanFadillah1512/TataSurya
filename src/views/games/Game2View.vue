@@ -18,14 +18,7 @@
       <div class="flex flex-col w-full z-10">
         <div class="flex justify-between items-start text-white font-mono w-full">
           <div class="flex items-start gap-3">
-            <!-- Back Button -->
-            <button 
-              v-if="isPlaying"
-              @click="goToLobby"
-              class="pointer-events-auto px-3 py-2 bg-white/10 hover:bg-white/20 border border-white/20 rounded-lg text-white text-xs font-bold tracking-widest transition-all active:scale-95 flex items-center gap-2"
-            >
-              <span>←</span> BACK
-            </button>
+            <!-- Back Button REMOVED -->
             <div class="hud-panel">
               <h2 class="text-cyan-400 text-[10px] md:text-xs uppercase tracking-widest mb-1">Level {{ level }}</h2>
               <p class="text-xl md:text-2xl font-bold font-mono nums">SCORE: {{ Math.floor(score) }}</p>
@@ -176,9 +169,15 @@
             <p>Left: Move • Right: Shoot & Skills</p>
          </div>
 
-          <button @click="startGame" class="w-full px-8 py-3 bg-cyan-700 hover:bg-cyan-600 text-white font-bold rounded shadow-lg transition-all active:scale-95 border-t border-cyan-400">
-            {{ isVictory || isGameOver ? 'PLAY AGAIN' : 'ENGAGE ENGINES' }}
-          </button>
+          <div class="flex flex-col gap-3">
+              <button @click="startGame" class="w-full px-8 py-3 bg-cyan-700 hover:bg-cyan-600 text-white font-bold rounded shadow-lg transition-all active:scale-95 border-t border-cyan-400">
+                {{ isVictory || isGameOver ? 'PLAY AGAIN' : 'ENGAGE ENGINES' }}
+              </button>
+              
+              <button @click="goToLobby" class="w-full px-8 py-3 bg-gray-700 hover:bg-gray-600 text-white font-bold rounded shadow-lg transition-all active:scale-95 border-t border-gray-500">
+                BACK TO LOBBY
+              </button>
+          </div>
         </div>
       </div>
 
@@ -279,6 +278,13 @@ const loader = new GLTFLoader();
 let enemyTemplates = [];
 // NEW: Menggunakan array untuk menyimpan template bos setiap level
 let bossTemplates = [];
+
+// --- Shared Resources (Optimization) ---
+let asteroidGeometry, asteroidMaterial;
+let powerUpGeometry, powerUpMaterial;
+let repairKitGeometry, repairKitMaterial;
+let enemyFallbackGeometry, enemyFallbackMaterial;
+let bossFallbackGeometry, bossFallbackMaterial;
 
 // Game Physics & Loop
 let baseGameSpeed = ref(1.0);
@@ -382,6 +388,27 @@ function setQuality(newQuality) {
   }
 }
 
+function initSharedResources() {
+  asteroidGeometry = new THREE.IcosahedronGeometry(1, 0);
+  asteroidMaterial = new THREE.MeshStandardMaterial({ color: 0x666666, roughness: 0.8, flatShading: true });
+
+  powerUpGeometry = new THREE.OctahedronGeometry(1, 0);
+  powerUpMaterial = new THREE.MeshStandardMaterial({ 
+      color: 0xffff00, emissive: 0xffff00, emissiveIntensity: 0.5,
+      roughness: 0.2, metalness: 0.8
+  });
+
+  repairKitGeometry = new THREE.BoxGeometry(1, 1, 1);
+  repairKitMaterial = new THREE.MeshLambertMaterial({ color: 0x00ff00, emissive: 0x005500 });
+
+  enemyFallbackGeometry = new THREE.TetrahedronGeometry(1, 0);
+  enemyFallbackGeometry.rotateX(-Math.PI/2);
+  enemyFallbackMaterial = new THREE.MeshStandardMaterial({ color: 0xcc0000 });
+
+  bossFallbackGeometry = new THREE.TorusKnotGeometry(2, 0.6, 100, 16);
+  bossFallbackMaterial = new THREE.MeshStandardMaterial({ color: 0x9333ea });
+}
+
 // --- 3D SETUP & ASSET LOADING ---
 function initThree() {
   scene = new THREE.Scene();
@@ -405,6 +432,8 @@ function initThree() {
   sunLight.position.set(20, 50, 20);
   sunLight.castShadow = settings.shadowMapEnabled;
   scene.add(sunLight);
+
+  initSharedResources();
 
   loadAllAssets();
   createEnvironment();
@@ -727,10 +756,10 @@ function createExplosion(position, isSmall = false) {
 // --- ENTITIES SPAWNER ---
 function spawnAsteroid() {
   const settings = qualitySettings[quality.value];
+  const mesh = new THREE.Mesh(asteroidGeometry, asteroidMaterial);
   const radius = Math.random() * 1.0 + 0.5;
-  const geometry = new THREE.IcosahedronGeometry(radius, 0);
-  const material = new THREE.MeshStandardMaterial({ color: 0x666666, roughness: 0.8, flatShading: true });
-  const mesh = new THREE.Mesh(geometry, material);
+  mesh.scale.set(radius, radius, radius);
+  
   mesh.castShadow = settings.shadowMapEnabled; 
   mesh.position.set((Math.random()-0.5)*55, (Math.random()-0.5)*30, -150);
   mesh.rotation.set(Math.random()*3, Math.random()*3, 0);
@@ -739,12 +768,7 @@ function spawnAsteroid() {
 }
 
 function spawnPowerUp() {
-    const geometry = new THREE.OctahedronGeometry(1, 0);
-    const material = new THREE.MeshStandardMaterial({ 
-        color: 0xffff00, emissive: 0xffff00, emissiveIntensity: 0.5,
-        roughness: 0.2, metalness: 0.8
-    });
-    const mesh = new THREE.Mesh(geometry, material);
+    const mesh = new THREE.Mesh(powerUpGeometry, powerUpMaterial);
     mesh.position.set((Math.random()-0.5)*55, (Math.random()-0.5)*20, -150);
     scene.add(mesh);
     powerUps.push({ mesh });
@@ -791,10 +815,7 @@ function spawnEnemy() {
     mesh.rotation.y = Math.PI; 
   } else {
     // Fallback jika template tidak tersedia
-    const geometry = new THREE.TetrahedronGeometry(1, 0);
-    geometry.rotateX(-Math.PI/2);
-    const material = new THREE.MeshStandardMaterial({ color: 0xcc0000 });
-    mesh = new THREE.Mesh(geometry, material);
+    mesh = new THREE.Mesh(enemyFallbackGeometry, enemyFallbackMaterial);
   }
 
   mesh.position.set((Math.random()-0.5)*55, (Math.random()-0.5)*20, -150);
@@ -811,9 +832,7 @@ function spawnEnemy() {
 }
 
 function spawnRepairKit() {
-  const geometry = new THREE.BoxGeometry(1, 1, 1);
-  const material = new THREE.MeshLambertMaterial({ color: 0x00ff00, emissive: 0x005500 });
-  const mesh = new THREE.Mesh(geometry, material);
+  const mesh = new THREE.Mesh(repairKitGeometry, repairKitMaterial);
   mesh.position.set((Math.random()-0.5)*55, (Math.random()-0.5)*20, -150);
   scene.add(mesh);
   repairKits.push({ mesh });
@@ -862,9 +881,7 @@ function spawnBoss() {
     mesh.rotation.y = Math.PI;
   } else {
     // Fallback jika template tidak tersedia
-    const geometry = new THREE.TorusKnotGeometry(2, 0.6, 100, 16);
-    const material = new THREE.MeshStandardMaterial({ color: 0x9333ea });
-    mesh = new THREE.Mesh(geometry, material);
+    mesh = new THREE.Mesh(bossFallbackGeometry, bossFallbackMaterial);
   }
 
   mesh.position.set(0, 5, -50);
@@ -1078,6 +1095,18 @@ function cleanupThreeJS() {
     renderer.dispose();
     renderer.forceContextLoss();
   }
+
+  // Dispose Shared
+  if(asteroidGeometry) asteroidGeometry.dispose();
+  if(asteroidMaterial) asteroidMaterial.dispose();
+  if(powerUpGeometry) powerUpGeometry.dispose();
+  if(powerUpMaterial) powerUpMaterial.dispose();
+  if(repairKitGeometry) repairKitGeometry.dispose();
+  if(repairKitMaterial) repairKitMaterial.dispose();
+  if(enemyFallbackGeometry) enemyFallbackGeometry.dispose();
+  if(enemyFallbackMaterial) enemyFallbackMaterial.dispose();
+  if(bossFallbackGeometry) bossFallbackGeometry.dispose();
+  if(bossFallbackMaterial) bossFallbackMaterial.dispose();
 }
 
 // --- GAME LOOP ---

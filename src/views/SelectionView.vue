@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, onUnmounted, computed, watch } from 'vue'
+import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import * as THREE from 'three'
 import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js'
@@ -59,6 +59,12 @@ const isMobile = window.innerWidth < 768
 
 // --- 3D SETUP ---
 const init = () => {
+  // Restore state
+  const savedIndex = sessionStorage.getItem('solar_selection_index')
+  if(savedIndex !== null) {
+      activeIndex.value = parseInt(savedIndex)
+  }
+
   const w = window.innerWidth
   const h = window.innerHeight
 
@@ -127,9 +133,14 @@ const init = () => {
   
   animate()
   
-  // Intro Animation
-  gsap.from(camera.position, { z: 40, duration: 2.5, ease: "power3.out" })
-  gsap.from(carouselGroup.rotation, { y: Math.PI, duration: 2.5, ease: "power3.out" })
+  // Intro Animation or Snap
+  if (sessionStorage.getItem('solar_selection_index') === null) {
+      gsap.from(camera.position, { z: 40, duration: 2.5, ease: "power3.out" })
+      gsap.from(carouselGroup.rotation, { y: Math.PI, duration: 2.5, ease: "power3.out" })
+  } else {
+      // If we restored state, snap immediately to correct rotation
+      updateCarouselRotation(true) // Pass immediate flag or handle inside
+  }
 }
 
 const createStarfield = () => {
@@ -186,29 +197,11 @@ const createMonoliths = () => {
         // Correct rotation to face center initially (or outward)
         group.rotation.y = angle
         
-        // --- A. THE GLASS SLAB ---
-        // Premium glass material
-        const glassGeo = new THREE.BoxGeometry(4, 6, 0.5)
-        const glassMat = new THREE.MeshPhysicalMaterial({
-            color: 0xffffff,
-            metalness: 0,
-            roughness: 0,
-            transmission: 1, // Glass
-            thickness: 2.5, // Refraction thickness
-            envMapIntensity: 1,
-            clearcoat: 1,
-            clearcoatRoughness: 0.1,
-            ior: 1.5,
-            attenuationColor: new THREE.Color(node.color),
-            attenuationDistance: 2
-        })
-        const slab = new THREE.Mesh(glassGeo, glassMat)
-        
         // --- B. INNER GLOWING ICON ---
         let iconGeo
-        if (node.iconGeometry === 'sphere') iconGeo = new THREE.IcosahedronGeometry(1.2, 1)
-        else if (node.iconGeometry === 'box') iconGeo = new THREE.BoxGeometry(1.8, 1.8, 1.8)
-        else iconGeo = new THREE.OctahedronGeometry(1.5, 0)
+        if (node.iconGeometry === 'sphere') iconGeo = new THREE.IcosahedronGeometry(1.2, 1) // Exploration
+        else if (node.iconGeometry === 'box') iconGeo = new THREE.BoxGeometry(1.8, 1.8, 1.8) // Archives
+        else iconGeo = new THREE.TorusKnotGeometry(0.8, 0.3, 64, 8) // Simulation (Complex)
         
         const iconMat = new THREE.MeshBasicMaterial({
             color: node.coreColor || node.color,
@@ -222,7 +215,6 @@ const createMonoliths = () => {
         const innerLight = new THREE.PointLight(node.color, 3, 8)
         innerLight.position.set(0,0,0)
         
-        group.add(slab)
         group.add(icon)
         group.add(innerLight)
         
@@ -261,7 +253,7 @@ const animate = () => {
 
 // --- INTERACTION LOGIC ---
 
-const updateCarouselRotation = () => {
+const updateCarouselRotation = (immediate = false) => {
     // 3 Items -> 120 deg apart (2PI / 3)
     // We want activeIndex to be closest to camera (Z+)
     // If Item 0 is at Angle 0. We rotate group by -Angle0?
@@ -270,7 +262,7 @@ const updateCarouselRotation = () => {
     
     gsap.to(carouselGroup.rotation, {
         y: targetRotation,
-        duration: 1.2,
+        duration: immediate ? 0 : 1.2,
         ease: "power4.out"
     })
 }
@@ -291,6 +283,9 @@ const selectItem = () => {
     if(isTransitioning.value) return
     isTransitioning.value = true
     
+    // Save state
+    sessionStorage.setItem('solar_selection_index', activeIndex.value)
+
     // Warp Speed Effect
     const targetNode = nodes[activeIndex.value]
     
@@ -352,10 +347,27 @@ onUnmounted(() => {
     window.removeEventListener('touchstart', onTouchStart)
     window.removeEventListener('touchmove', onTouchMove)
     window.removeEventListener('touchend', onTouchEnd)
+    
+    gsap.killTweensOf(camera.position)
+    gsap.killTweensOf(carouselGroup.rotation)
+    gsap.killTweensOf('.ui-layer')
+
+    if(scene) {
+        scene.traverse((child) => {
+            if(child.geometry) child.geometry.dispose()
+            if(child.material) {
+                if(Array.isArray(child.material)) child.material.forEach(m => m.dispose())
+                else child.material.dispose()
+            }
+        })
+        scene.clear()
+    }
+
     if(renderer) {
         renderer.dispose()
         renderer.forceContextLoss()
     }
+    composer = null
 })
 
 const current = computed(() => nodes[activeIndex.value])
@@ -374,23 +386,21 @@ const current = computed(() => nodes[activeIndex.value])
     <div class="ui-layer absolute inset-0 z-20 flex flex-col justify-between p-8 md:p-12 pointer-events-none transition-all duration-300">
         
         <!-- HEADER -->
-        <div class="flex justify-between items-start">
-            <div class="flex items-start gap-4">
-                <!-- Back Button -->
-                <button 
-                    @click="router.push('/')"
-                    class="pointer-events-auto px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/20 hover:border-cyan-400/50 rounded-lg text-white text-xs font-bold tracking-widest transition-all active:scale-95 flex items-center gap-2 backdrop-blur-md"
-                >
-                    <span>←</span> HOME
-                </button>
-                <div class="flex flex-col gap-1">
-                    <div class="text-[10px] md:text-xs font-mono text-cyan-400 tracking-[0.4em] uppercase opacity-70 mb-1">Nexus Interface</div>
-                    <h1 class="text-3xl md:text-4xl font-headers font-bold tracking-widest text-white uppercase drop-shadow-[0_0_15px_rgba(255,255,255,0.3)]">
-                        System Select
-                    </h1>
-                </div>
+        <div class="flex justify-between items-start w-full">
+            <div class="flex flex-col gap-1">
+                <div class="text-[10px] md:text-xs font-mono text-cyan-400 tracking-[0.4em] uppercase opacity-70 mb-1">Nexus Interface</div>
+                <h1 class="text-3xl md:text-4xl font-headers font-bold tracking-widest text-white uppercase drop-shadow-[0_0_15px_rgba(255,255,255,0.3)]">
+                    System Select
+                </h1>
             </div>
 
+            <!-- Back Button (Right Aligned, Transparent) -->
+            <button 
+                @click="router.push('/')"
+                class="pointer-events-auto px-4 py-2 hover:bg-white/5 border border-white/20 hover:border-cyan-400/50 rounded-lg text-white text-xs font-bold tracking-widest transition-all active:scale-95 flex items-center gap-2"
+            >
+                <span>←</span> HOME
+            </button>
         </div>
 
         <!-- MAIN INFO (CENTER BOTTOM) -->

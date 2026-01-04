@@ -1,7 +1,7 @@
 <script setup>
 import { ref, onMounted, onUnmounted, computed } from "vue";
 import { useRouter } from "vue-router";
-import { solarData } from "../data/planets.js";
+
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
@@ -818,6 +818,7 @@ onUnmounted(() => {
           class="pointer-events-auto w-full max-w-4xl mx-auto flex items-end gap-4"
         >
           <button
+            v-if="!isARMode"
             @click="prevScene"
             class="control-btn group pointer-events-auto cursor-pointer"
           >
@@ -868,6 +869,7 @@ onUnmounted(() => {
           </div>
 
           <button
+            v-if="!isARMode"
             @click="nextScene"
             class="control-btn group pointer-events-auto cursor-pointer"
           >
@@ -894,7 +896,7 @@ onUnmounted(() => {
     </div>
 
     <div
-      class="fixed right-4 top-1/2 -translate-y-1/2 z-30 flex flex-col gap-4 pointer-events-auto md:top-40 md:right-6"
+      class="fixed right-4 top-[40%] -translate-y-1/2 z-30 flex flex-col gap-4 pointer-events-auto md:top-[40%] md:right-6"
     >
       <button
         @click="toggleAR"
@@ -994,6 +996,7 @@ onUnmounted(() => {
     </div>
 
     <div
+      v-if="!isARMode"
       class="fixed top-4 right-4 md:top-6 md:right-6 z-20 pointer-events-auto"
     >
       <div class="flex gap-3">

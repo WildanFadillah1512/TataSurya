@@ -77,17 +77,39 @@ const completeInitialization = () => {
   setTimeout(() => router.push('/selection'), 500)
 }
 
-onMounted(() => {
-  initThree()
-  animate()
-  window.addEventListener('resize', () => {
+const onResize = () => {
+    if (!camera || !renderer) return
     camera.aspect = window.innerWidth / window.innerHeight
     camera.updateProjectionMatrix()
     renderer.setSize(window.innerWidth, window.innerHeight)
-  })
+}
+
+onMounted(() => {
+  initThree()
+  animate()
+  window.addEventListener('resize', onResize)
 })
 
-onUnmounted(() => cancelAnimationFrame(animationId))
+onUnmounted(() => {
+  cancelAnimationFrame(animationId)
+  window.removeEventListener('resize', onResize)
+  
+  if (scene) {
+    scene.traverse((object) => {
+      if (object.geometry) object.geometry.dispose()
+      if (object.material) {
+        if (Array.isArray(object.material)) object.material.forEach(m => m.dispose())
+        else object.material.dispose()
+      }
+    })
+    scene.clear()
+  }
+  
+  if (renderer) {
+    renderer.dispose()
+    renderer.forceContextLoss()
+  }
+})
 </script>
 
 <template>
@@ -140,10 +162,10 @@ onUnmounted(() => cancelAnimationFrame(animationId))
         </div>
         <div class="flex gap-8">
           <div class="group cursor-pointer">
-            <div class="text-[10px] text-white/20 group-hover:text-white transition-colors">01. PREFLIGHT</div>
+            <div class="text-[10px] text-white/20 group-hover:text-white transition-colors">01. Wildan</div>
           </div>
           <div class="group cursor-pointer">
-            <div class="text-[10px] text-white/20 group-hover:text-white transition-colors">02. PROTOCOL</div>
+            <div class="text-[10px] text-white/20 group-hover:text-white transition-colors">02. Meutya</div>
           </div>
         </div>
       </div>

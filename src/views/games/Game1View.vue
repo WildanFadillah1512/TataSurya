@@ -759,7 +759,7 @@ onUnmounted(() => {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  padding: 12px 15px;
+  padding: 24px 15px 12px;
   background: linear-gradient(to bottom, rgba(0, 0, 0, 0.7), transparent);
   gap: 8px;
   flex-wrap: wrap;
