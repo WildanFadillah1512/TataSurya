@@ -1,162 +1,312 @@
 <template>
-  <div class="relative w-full h-screen bg-[#050510] overflow-hidden font-sans select-none text-white">
-    
-    <!-- BACKGROUND & 3D LAYERS -->
+  <div
+    class="relative w-full h-screen bg-[#050510] overflow-hidden font-sans select-none text-white"
+  >
     <video
       ref="videoRef"
       class="absolute inset-0 w-full h-full object-cover z-0 transition-all duration-700 ease-in-out"
-      :class="isARMode ? 'opacity-100 scale-100' : 'opacity-0 scale-110 pointer-events-none grayscale'"
+      :class="
+        isARMode
+          ? 'opacity-100 scale-100'
+          : 'opacity-0 scale-110 pointer-events-none grayscale'
+      "
       playsinline
       muted
       autoplay
     ></video>
+
     <div
       ref="containerRef"
       class="absolute inset-0 z-10 cursor-move active:cursor-grabbing pointer-events-auto"
     ></div>
 
-    <!-- ATMOSPHERIC EFFECTS -->
-    <div class="absolute inset-0 z-10 pointer-events-none bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 mix-blend-overlay"></div>
-    <div class="absolute inset-0 z-10 pointer-events-none bg-radial-gradient"></div>
+    <div
+      class="absolute inset-0 z-10 pointer-events-none bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 mix-blend-overlay"
+    ></div>
+    <div
+      class="absolute inset-0 z-10 pointer-events-none bg-radial-gradient"
+    ></div>
 
-    <!-- UI LAYER -->
-    <div class="absolute inset-0 z-20 pointer-events-none flex flex-col h-full">
-      
-      <!-- HEADER (Responsive) -->
-      <header class="w-full p-4 md:p-6 flex justify-between items-start transition-all duration-500 z-30" :class="isARMode ? 'opacity-0 -translate-y-10' : 'opacity-100 translate-y-0'">
-        
-        <!-- BACK BUTTON -->
+    <div
+      class="absolute inset-0 z-20 pointer-events-none flex flex-col h-full justify-between"
+    >
+      <header
+        class="w-full p-4 md:p-6 flex justify-between items-start transition-all duration-500 z-30"
+        :class="
+          isARMode ? 'opacity-0 -translate-y-10' : 'opacity-100 translate-y-0'
+        "
+      >
         <div class="pointer-events-auto">
           <button
             @click="goBack"
-            class="group flex items-center gap-3 px-5 py-3 rounded-l-full rounded-r-lg bg-gray-900/80 border-l-4 border-cyan-500 border-y border-r border-white/10 backdrop-blur-md hover:bg-white/10 transition-all shadow-[0_4px_20px_rgba(0,0,0,0.5)]"
+            class="group flex items-center gap-2 md:gap-3 px-4 md:px-5 py-2 md:py-3 rounded-l-full rounded-r-lg bg-gray-900/80 border-l-4 border-cyan-500 border-y border-r border-white/10 backdrop-blur-md hover:bg-white/10 transition-all shadow-lg"
           >
-            <span class="text-cyan-400 text-xl group-hover:-translate-x-1 transition-transform">❮</span>
+            <span
+              class="text-cyan-400 text-lg md:text-xl group-hover:-translate-x-1 transition-transform"
+              >❮</span
+            >
             <div class="flex flex-col items-start leading-none">
-              <span class="text-[9px] text-cyan-500 tracking-[0.2em] font-mono mb-1">SYSTEM</span>
-              <span class="font-bold text-sm tracking-widest text-gray-100">RETURN</span>
+              <span
+                class="text-[8px] md:text-[9px] text-cyan-500 tracking-[0.2em] font-mono mb-1"
+                >SYSTEM</span
+              >
+              <span
+                class="font-bold text-xs md:text-sm tracking-widest text-gray-100"
+                >RETURN</span
+              >
             </div>
           </button>
         </div>
 
-        <!-- PLANET TITLE -->
-        <div class="flex flex-col items-end pointer-events-auto">
-           <div class="flex items-center gap-2 text-[10px] md:text-xs font-mono text-cyan-400/80 tracking-widest mb-1 bg-black/40 px-2 py-1 rounded backdrop-blur-sm border border-white/5">
-             <span class="w-1.5 h-1.5 bg-cyan-400 rounded-full animate-pulse"></span>
-             <span>ID: {{ planetData.id || '00' }}</span>
-             <span class="hidden md:inline text-white/20">|</span>
-             <span class="hidden md:inline">CLASS: PLANETARY</span>
+        <div class="flex flex-col items-end pointer-events-auto pl-4">
+          <div
+            class="flex items-center gap-2 text-[9px] md:text-xs font-mono text-cyan-400/80 tracking-widest mb-1 bg-black/40 px-2 py-1 rounded backdrop-blur-sm border border-white/5"
+          >
+            <span
+              class="w-1.5 h-1.5 bg-cyan-400 rounded-full animate-pulse"
+            ></span>
+            <span>ID: {{ planetData.id || "00" }}</span>
+            <span class="hidden md:inline text-white/20">|</span>
+            <span class="hidden md:inline">CLASS: PLANETARY</span>
           </div>
-          <h1 class="text-5xl md:text-7xl font-black text-transparent bg-clip-text bg-gradient-to-r from-white via-cyan-100 to-cyan-400 uppercase tracking-tighter italic drop-shadow-[0_0_15px_rgba(34,211,238,0.5)]">
+          <h1
+            class="text-4xl md:text-7xl font-black text-transparent bg-clip-text bg-gradient-to-r from-white via-cyan-100 to-cyan-400 uppercase tracking-tighter italic drop-shadow-[0_0_15px_rgba(34,211,238,0.5)] text-right"
+          >
             {{ planetData.name }}
           </h1>
         </div>
       </header>
 
-      <!-- DESKTOP CONTAINER (Flex Layout) -->
-      <div class="hidden md:flex flex-1 mx-6 mb-6 gap-6 min-h-0 relative z-20">
-        
-        <!-- LEFT SIDEBAR: INFO PANEL (Desktop) -->
-        <aside 
+      <div
+        class="hidden md:flex flex-1 mx-6 mb-6 gap-6 min-h-0 relative z-20 pointer-events-none items-stretch"
+      >
+        <aside
           class="w-[420px] flex flex-col pointer-events-auto transition-all duration-500 ease-[cubic-bezier(0.23,1,0.32,1)]"
-          :class="isARMode ? '-translate-x-[120%] opacity-0' : 'translate-x-0 opacity-100'"
+          :class="
+            isARMode
+              ? '-translate-x-[120%] opacity-0'
+              : 'translate-x-0 opacity-100'
+          "
         >
-          <div class="flex-1 bg-black/70 backdrop-blur-2xl border border-white/10 rounded-2xl overflow-hidden flex flex-col shadow-2xl relative group hover:border-cyan-500/30 transition-colors">
-            <!-- DECORATIVE LINES -->
-            <div class="absolute top-0 right-0 p-3 opacity-50"><div class="w-12 h-12 border-t-2 border-r-2 border-cyan-500/30 rounded-tr-xl"></div></div>
-            <div class="absolute bottom-0 left-0 p-3 opacity-50"><div class="w-12 h-12 border-b-2 border-l-2 border-cyan-500/30 rounded-bl-xl"></div></div>
+          <div
+            class="flex-1 bg-black/70 backdrop-blur-2xl border border-white/10 rounded-2xl overflow-hidden flex flex-col shadow-2xl relative group hover:border-cyan-500/30 transition-colors max-h-[calc(100vh-140px)]"
+          >
+            <div class="absolute top-0 right-0 p-3 opacity-50">
+              <div
+                class="w-12 h-12 border-t-2 border-r-2 border-cyan-500/30 rounded-tr-xl"
+              ></div>
+            </div>
+            <div class="absolute bottom-0 left-0 p-3 opacity-50">
+              <div
+                class="w-12 h-12 border-b-2 border-l-2 border-cyan-500/30 rounded-bl-xl"
+              ></div>
+            </div>
 
-            <!-- TABS -->
-            <div class="p-2 grid grid-cols-4 gap-1 bg-black/50 border-b border-white/5">
-              <button 
-                v-for="tab in ['stats', 'structure', 'atmosphere', 'facts']" 
+            <div
+              class="p-2 grid grid-cols-4 gap-1 bg-black/50 border-b border-white/5 flex-shrink-0"
+            >
+              <button
+                v-for="tab in ['stats', 'structure', 'atmosphere', 'facts']"
                 :key="tab"
                 @click="activeTab = tab"
                 class="relative py-3 flex flex-col items-center justify-center rounded-lg transition-all duration-300 group/btn"
-                :class="activeTab === tab ? 'bg-cyan-500/10 text-cyan-300' : 'hover:bg-white/5 text-gray-500 hover:text-white'"
+                :class="
+                  activeTab === tab
+                    ? 'bg-cyan-500/10 text-cyan-300'
+                    : 'hover:bg-white/5 text-gray-500 hover:text-white'
+                "
               >
-                <span class="text-xl mb-1 filter drop-shadow-md transition-transform group-hover/btn:scale-110">
-                  {{ tab === 'stats' ? '📊' : tab === 'structure' ? '⚙️' : tab === 'atmosphere' ? '🌫️' : '✨' }}
+                <span
+                  class="text-xl mb-1 filter drop-shadow-md transition-transform group-hover/btn:scale-110"
+                >
+                  {{
+                    tab === "stats"
+                      ? "📊"
+                      : tab === "structure"
+                      ? "⚙️"
+                      : tab === "atmosphere"
+                      ? "🌫️"
+                      : "✨"
+                  }}
                 </span>
-                <span class="text-[8px] font-bold uppercase tracking-wider opacity-80 md:inline hidden">{{ tab }}</span>
-                <div v-if="activeTab === tab" class="absolute bottom-0 w-1/2 h-[2px] bg-cyan-400 shadow-[0_0_8px_rgba(34,211,238,0.8)] rounded-full"></div>
+                <span
+                  class="text-[8px] font-bold uppercase tracking-wider opacity-80 md:inline hidden"
+                  >{{ tab }}</span
+                >
+                <div
+                  v-if="activeTab === tab"
+                  class="absolute bottom-0 w-1/2 h-[2px] bg-cyan-400 shadow-[0_0_8px_rgba(34,211,238,0.8)] rounded-full"
+                ></div>
               </button>
             </div>
 
-            <!-- CONTENT -->
-            <div class="flex-1 overflow-y-auto p-6 scrollbar-hide relative text-shadow-sm">
+            <div
+              class="flex-1 overflow-y-auto p-6 scrollbar-hide relative text-shadow-sm"
+            >
               <Transition name="fade-slide" mode="out-in">
-                <component :is="{
-                   'stats': 'div', 'structure': 'div', 'atmosphere': 'div', 'facts': 'div'
-                }[activeTab]" class="space-y-4">
-                  <!-- STATS -->
-                  <div v-if="activeTab === 'stats'" class="grid grid-cols-1 gap-3">
-                     <div v-for="(stat, idx) in [
-                        { icon: '🌡️', label: 'Avg Temp', value: planetData.quickStats?.temperature },
-                        { icon: '⚖️', label: 'Gravity', value: planetData.quickStats?.gravity },
-                        { icon: '📏', label: 'Diameter', value: planetData.quickStats?.diameter },
-                        { icon: '🌙', label: 'Moons', value: planetData.quickStats?.moons?.toString() }
-                      ]" :key="idx" 
+                <component
+                  :is="
+                    {
+                      stats: 'div',
+                      structure: 'div',
+                      atmosphere: 'div',
+                      facts: 'div',
+                    }[activeTab]
+                  "
+                  class="space-y-4"
+                >
+                  <div
+                    v-if="activeTab === 'stats'"
+                    class="grid grid-cols-1 gap-3"
+                  >
+                    <div
+                      v-for="(stat, idx) in [
+                        {
+                          icon: '🌡️',
+                          label: 'Avg Temp',
+                          value: planetData.quickStats?.temperature,
+                        },
+                        {
+                          icon: '⚖️',
+                          label: 'Gravity',
+                          value: planetData.quickStats?.gravity,
+                        },
+                        {
+                          icon: '📏',
+                          label: 'Diameter',
+                          value: planetData.quickStats?.diameter,
+                        },
+                        {
+                          icon: '🌙',
+                          label: 'Moons',
+                          value: planetData.quickStats?.moons?.toString(),
+                        },
+                      ]"
+                      :key="idx"
                       class="flex items-center justify-between p-4 rounded-xl bg-white/5 border border-white/5 hover:border-cyan-500/30 transition-all hover:bg-white/10 group/stat"
                     >
                       <div class="flex items-center gap-3">
-                        <span class="text-2xl grayscale group-hover/stat:grayscale-0 transition-all duration-500">{{ stat.icon }}</span>
-                        <span class="text-xs font-mono text-gray-400 uppercase tracking-widest">{{ stat.label }}</span>
+                        <span
+                          class="text-2xl grayscale group-hover/stat:grayscale-0 transition-all duration-500"
+                          >{{ stat.icon }}</span
+                        >
+                        <span
+                          class="text-xs font-mono text-gray-400 uppercase tracking-widest"
+                          >{{ stat.label }}</span
+                        >
                       </div>
-                      <span class="text-lg font-bold text-white font-mono text-right">{{ stat.value || 'N/A' }}</span>
+                      <span
+                        class="text-lg font-bold text-white font-mono text-right"
+                        >{{ stat.value || "N/A" }}</span
+                      >
                     </div>
                   </div>
 
-                  <!-- TEXT -->
-                  <div v-else-if="activeTab === 'structure' || activeTab === 'atmosphere'" class="relative">
-                    <h3 class="text-lg font-bold text-white mb-4 flex items-center gap-2 border-b border-white/10 pb-2">
-                       <span class="text-cyan-400 font-mono text-xs p-1 bg-cyan-900/40 rounded">///</span>
-                       <span class="tracking-widest">{{ activeTab === 'structure' ? 'COMPOSITION' : 'ATMOSPHERE' }}</span>
+                  <div
+                    v-else-if="
+                      activeTab === 'structure' || activeTab === 'atmosphere'
+                    "
+                    class="relative"
+                  >
+                    <h3
+                      class="text-lg font-bold text-white mb-4 flex items-center gap-2 border-b border-white/10 pb-2"
+                    >
+                      <span
+                        class="text-cyan-400 font-mono text-xs p-1 bg-cyan-900/40 rounded"
+                        >///</span
+                      >
+                      <span class="tracking-widest">{{
+                        activeTab === "structure" ? "COMPOSITION" : "ATMOSPHERE"
+                      }}</span>
                     </h3>
-                    <p class="text-base leading-relaxed text-gray-300 font-light tracking-wide text-justify">
-                      {{ activeTab === 'structure' ? planetData.structure : planetData.atmosphere }}
+                    <p
+                      class="text-base leading-relaxed text-gray-300 font-light tracking-wide text-justify"
+                    >
+                      {{
+                        activeTab === "structure"
+                          ? planetData.structure
+                          : planetData.atmosphere
+                      }}
                     </p>
                   </div>
 
-                  <!-- FACTS -->
                   <div v-else class="flex flex-col h-full">
                     <div class="flex justify-between items-end mb-4">
-                       <span class="text-[10px] font-mono text-cyan-400 animate-pulse bg-cyan-950/50 px-2 py-0.5 rounded border border-cyan-800">● LIVE CONNECTION</span>
-                       <span class="text-xs font-mono text-gray-500">{{ currentFactIdx + 1 }} / {{ planetData.funFacts.length }}</span>
+                      <span
+                        class="text-[10px] font-mono text-cyan-400 animate-pulse bg-cyan-950/50 px-2 py-0.5 rounded border border-cyan-800"
+                        >● LIVE CONNECTION</span
+                      >
+                      <span class="text-xs font-mono text-gray-500"
+                        >{{ currentFactIdx + 1 }} /
+                        {{ planetData.funFacts.length }}</span
+                      >
                     </div>
 
-                    <div class="bg-black/80 rounded-lg border border-cyan-500/20 p-5 font-mono text-sm leading-relaxed text-cyan-50 shadow-[inset_0_0_20px_rgba(0,0,0,0.8)] relative overflow-hidden min-h-[120px]">
-                      <div class="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-10 pointer-events-none"></div>
+                    <div
+                      class="bg-black/80 rounded-lg border border-cyan-500/20 p-5 font-mono text-sm leading-relaxed text-cyan-50 shadow-[inset_0_0_20px_rgba(0,0,0,0.8)] relative overflow-hidden min-h-[120px]"
+                    >
+                      <div
+                        class="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-10 pointer-events-none"
+                      ></div>
                       <span class="text-cyan-500 mr-2">➜</span>
-                      {{ displayedFact }}<span class="w-1.5 h-4 bg-cyan-500 inline-block align-middle ml-1 animate-blink"></span>
+                      {{ displayedFact
+                      }}<span
+                        class="w-1.5 h-4 bg-cyan-500 inline-block align-middle ml-1 animate-blink"
+                      ></span>
                     </div>
 
                     <div class="mt-6 flex flex-col gap-4">
                       <div class="flex justify-center gap-1.5">
-                         <button 
-                          v-for="(_, idx) in planetData.funFacts" :key="idx"
-                          @click="currentFactIdx = idx; typeText(planetData.funFacts[idx])"
+                        <button
+                          v-for="(_, idx) in planetData.funFacts"
+                          :key="idx"
+                          @click="
+                            currentFactIdx = idx;
+                            typeText(planetData.funFacts[idx]);
+                          "
                           class="w-full h-1 rounded-full transition-all"
-                          :class="idx === currentFactIdx ? 'bg-cyan-400 shadow-[0_0_8px_cyan]' : 'bg-gray-800 hover:bg-gray-600'"
-                         ></button>
+                          :class="
+                            idx === currentFactIdx
+                              ? 'bg-cyan-400 shadow-[0_0_8px_cyan]'
+                              : 'bg-gray-800 hover:bg-gray-600'
+                          "
+                        ></button>
                       </div>
-                      <button @click="nextFact" class="w-full py-3 bg-white/5 hover:bg-cyan-500/20 border border-white/10 hover:border-cyan-500/50 text-xs font-bold uppercase tracking-widest text-white transition-all rounded-lg flex items-center justify-center gap-2 group/next">
-                         Next Data Entry <span class="group-hover/next:translate-x-1 transition-transform">→</span>
+                      <button
+                        @click="nextFact"
+                        class="w-full py-3 bg-white/5 hover:bg-cyan-500/20 border border-white/10 hover:border-cyan-500/50 text-xs font-bold uppercase tracking-widest text-white transition-all rounded-lg flex items-center justify-center gap-2 group/next"
+                      >
+                        Next Data Entry
+                        <span
+                          class="group-hover/next:translate-x-1 transition-transform"
+                          >→</span
+                        >
                       </button>
                     </div>
                   </div>
                 </component>
               </Transition>
             </div>
-            
-            <!-- QUIZ ACTION -->
-            <div class="p-4 border-t border-white/10 bg-gradient-to-t from-fuchsia-900/40 to-transparent">
+
+            <div
+              class="p-4 border-t border-white/10 bg-gradient-to-t from-fuchsia-900/40 to-transparent flex-shrink-0"
+            >
               <button
-                @click="router.push({ name: 'quiz', params: { id: planetData.id }, query: { from: 'planet-detail' } })"
-                class="w-full relative overflow-hidden group bg-cyan-600 hover:bg-cyan-500 text-white p-4 rounded-xl font-bold uppercase tracking-wider transition-all shadow-[0_0_20px_rgba(8,145,178,0.4)] hover:shadow-[0_0_30px_rgba(34,211,238,0.6)]"
+                @click="
+                  router.push({
+                    name: 'quiz',
+                    params: { id: planetData.id },
+                    query: { from: 'planet-detail' },
+                  })
+                "
+                class="w-full relative overflow-hidden group bg-cyan-600 hover:bg-cyan-500 text-white p-4 rounded-xl font-bold uppercase tracking-wider transition-all shadow-lg hover:shadow-cyan-400/50"
               >
-                <div class="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300"></div>
-                <span class="relative z-10 flex items-center justify-center gap-2">
+                <div
+                  class="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300"
+                ></div>
+                <span
+                  class="relative z-10 flex items-center justify-center gap-2"
+                >
                   <span>🚀</span> LAUNCH MISSION
                 </span>
               </button>
@@ -166,94 +316,215 @@
 
         <div class="flex-1 pointer-events-none"></div>
 
-        <!-- RIGHT SIDEBAR: TOOLS (Desktop) -->
-        <aside class="flex flex-col gap-4 items-end pointer-events-auto z-30 pt-10">
+        <aside
+          class="flex flex-col gap-4 items-end pointer-events-auto z-30 pt-32"
+        >
           <div class="flex flex-col gap-3 mt-4">
-              <!-- Leaderboard Button -->
-              <button
-                v-if="!isARMode"
-                @click="router.push({ path: '/leaderboard', query: { category: 'planets', mission: `Misi ${planetData.name}` } })"
-                class="w-12 h-12 flex items-center justify-center rounded-xl bg-yellow-500/10 hover:bg-yellow-500/20 border border-yellow-500/30 backdrop-blur-md transition-all group shadow-lg text-yellow-200 hover:scale-105 active:scale-95"
-              >
-                <span class="text-xl">🏆</span>
-              </button>
+            <button
+              v-if="!isARMode"
+              @click="
+                router.push({
+                  path: '/leaderboard',
+                  query: {
+                    category: 'planets',
+                    mission: `Misi ${planetData.name}`,
+                  },
+                })
+              "
+              class="w-12 h-12 flex items-center justify-center rounded-xl bg-yellow-500/10 hover:bg-yellow-500/20 border border-yellow-500/30 backdrop-blur-md transition-all group shadow-lg text-yellow-200 hover:scale-105 active:scale-95"
+            >
+              <span class="text-xl">🏆</span>
+            </button>
 
-             <!-- Audio Button -->
-             <div class="relative group flex items-center justify-end">
-               <span class="absolute right-14 bg-black/90 text-white text-[10px] px-2 py-1 rounded border border-white/10 opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">{{ voiceStatusMsg || 'AI Assistant' }}</span>
-               <button @click="toggleAudio" :disabled="!speechAvailable" class="w-12 h-12 rounded-xl backdrop-blur-md border flex items-center justify-center transition-all relative overflow-hidden shadow-lg hover:scale-105 active:scale-95" :class="isSpeaking ? 'bg-emerald-500/20 border-emerald-500 text-emerald-400' : 'bg-black/60 border-white/20 text-white hover:bg-white/20'">
-                  <div v-if="isSpeaking" class="absolute inset-0 flex items-center justify-center gap-[3px] opacity-50"><div class="w-[3px] bg-emerald-400 animate-wave h-3"></div><div class="w-[3px] bg-emerald-400 animate-wave h-5 delay-75"></div><div class="w-[3px] bg-emerald-400 animate-wave h-2 delay-150"></div></div>
-                  <span class="relative z-10 text-xl">{{ isSpeaking ? '🔊' : '🔈' }}</span>
-               </button>
-             </div>
-             
-             <!-- AR Button -->
-             <button @click="toggleAR" class="w-12 h-12 rounded-xl backdrop-blur-md border flex items-center justify-center transition-all relative overflow-hidden shadow-lg hover:scale-105 active:scale-95" :class="isARMode ? 'bg-red-500/20 border-red-500 text-red-500 animate-pulse-slow' : 'bg-black/60 border-white/20 text-white hover:border-cyan-400 hover:text-cyan-400'">
-                <span class="text-xl font-bold">{{ isARMode ? '✕' : 'AR' }}</span>
-             </button>
+            <div class="relative group flex items-center justify-end">
+              <span
+                class="absolute right-14 bg-black/90 text-white text-[10px] px-2 py-1 rounded border border-white/10 opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none"
+                >{{ voiceStatusMsg || "AI Assistant" }}</span
+              >
+              <button
+                @click="toggleAudio"
+                :disabled="!speechAvailable"
+                class="w-12 h-12 rounded-xl backdrop-blur-md border flex items-center justify-center transition-all relative overflow-hidden shadow-lg hover:scale-105 active:scale-95"
+                :class="
+                  isSpeaking
+                    ? 'bg-emerald-500/20 border-emerald-500 text-emerald-400'
+                    : 'bg-black/60 border-white/20 text-white hover:bg-white/20'
+                "
+              >
+                <div
+                  v-if="isSpeaking"
+                  class="absolute inset-0 flex items-center justify-center gap-[3px] opacity-50"
+                >
+                  <div class="w-[3px] bg-emerald-400 animate-wave h-3"></div>
+                  <div
+                    class="w-[3px] bg-emerald-400 animate-wave h-5 delay-75"
+                  ></div>
+                  <div
+                    class="w-[3px] bg-emerald-400 animate-wave h-2 delay-150"
+                  ></div>
+                </div>
+                <span class="relative z-10 text-xl">{{
+                  isSpeaking ? "🔊" : "🔈"
+                }}</span>
+              </button>
+            </div>
+
+            <button
+              @click="toggleAR"
+              class="w-12 h-12 rounded-xl backdrop-blur-md border flex items-center justify-center transition-all relative overflow-hidden shadow-lg hover:scale-105 active:scale-95"
+              :class="
+                isARMode
+                  ? 'bg-red-500/20 border-red-500 text-red-500 animate-pulse-slow'
+                  : 'bg-black/60 border-white/20 text-white hover:border-cyan-400 hover:text-cyan-400'
+              "
+            >
+              <span class="text-xl font-bold">{{ isARMode ? "✕" : "AR" }}</span>
+            </button>
           </div>
         </aside>
-
       </div>
 
-      <!-- MOBILE LAYOUT (Tools Top Right, Info Bottom Sheet) -->
-      <div class="md:hidden absolute inset-0 pointer-events-none z-20">
-         
-         <!-- Top Right Tools -->
-         <div class="absolute top-20 right-4 flex flex-col gap-3 pointer-events-auto items-end">
-            <button v-if="!isARMode" @click="router.push({ path: '/leaderboard', query: { category: 'planets', mission: `Misi ${planetData.name}` } })" class="w-10 h-10 flex items-center justify-center rounded-full bg-yellow-500/10 border border-yellow-500/30 text-yellow-200 backdrop-blur-md shadow-lg">
-              <span class="text-sm">🏆</span>
+      <div
+        class="md:hidden absolute inset-0 pointer-events-none z-20 flex flex-col justify-end"
+      >
+        <div
+          class="absolute top-32 right-4 flex flex-col gap-3 pointer-events-auto items-end"
+        >
+          <button
+            v-if="!isARMode"
+            @click="
+              router.push({
+                path: '/leaderboard',
+                query: {
+                  category: 'planets',
+                  mission: `Misi ${planetData.name}`,
+                },
+              })
+            "
+            class="w-10 h-10 flex items-center justify-center rounded-full bg-yellow-500/10 border border-yellow-500/30 text-yellow-200 backdrop-blur-md shadow-lg"
+          >
+            <span class="text-sm">🏆</span>
+          </button>
+          <button
+            @click="toggleAudio"
+            :disabled="!speechAvailable"
+            class="w-10 h-10 rounded-full backdrop-blur-md border flex items-center justify-center bg-black/60 border-white/20 text-white shadow-lg"
+            :class="isSpeaking && 'border-emerald-500 text-emerald-400'"
+          >
+            <span class="text-sm">{{ isSpeaking ? "🔊" : "🔈" }}</span>
+          </button>
+          <button
+            @click="toggleAR"
+            class="w-10 h-10 rounded-full backdrop-blur-md border flex items-center justify-center bg-black/60 border-white/20 text-white shadow-lg"
+          >
+            <span class="text-xs font-bold">{{ isARMode ? "✕" : "AR" }}</span>
+          </button>
+        </div>
+
+        <div
+          class="w-full bg-black/80 backdrop-blur-2xl border-t border-white/10 rounded-t-3xl shadow-[0_-5px_30px_rgba(0,0,0,0.8)] transition-transform duration-500 pointer-events-auto flex flex-col max-h-[50vh]"
+          :class="isARMode ? 'translate-y-full' : 'translate-y-0'"
+        >
+          <div class="w-full flex justify-center pt-3 pb-1">
+            <div class="w-12 h-1.5 bg-white/20 rounded-full"></div>
+          </div>
+
+          <div
+            class="flex overflow-x-auto gap-4 px-6 py-2 pb-0 no-scrollbar border-b border-white/5"
+          >
+            <button
+              v-for="tab in ['stats', 'structure', 'atmosphere', 'facts']"
+              :key="tab"
+              @click="activeTab = tab"
+              class="pb-3 text-xs font-bold uppercase tracking-widest whitespace-nowrap transition-colors relative"
+              :class="activeTab === tab ? 'text-cyan-400' : 'text-gray-500'"
+            >
+              {{ tab }}
+              <div
+                v-if="activeTab === tab"
+                class="absolute bottom-0 left-0 w-full h-0.5 bg-cyan-400 shadow-[0_0_8px_cyan]"
+              ></div>
             </button>
-            <button @click="toggleAudio" :disabled="!speechAvailable" class="w-10 h-10 rounded-full backdrop-blur-md border flex items-center justify-center bg-black/60 border-white/20 text-white shadow-lg" :class="isSpeaking && 'border-emerald-500 text-emerald-400'"><span class="text-sm">{{ isSpeaking ? '🔊' : '🔈' }}</span></button>
-            <button @click="toggleAR" class="w-10 h-10 rounded-full backdrop-blur-md border flex items-center justify-center bg-black/60 border-white/20 text-white shadow-lg"><span class="text-xs font-bold">{{ isARMode ? '✕' : 'AR' }}</span></button>
-         </div>
+          </div>
 
-         <!-- Bottom Sheet Info -->
-         <div 
-            class="absolute bottom-0 left-0 w-full bg-black/80 backdrop-blur-2xl border-t border-white/10 rounded-t-3xl shadow-[0_-5px_30px_rgba(0,0,0,0.8)] transition-transform duration-500 pointer-events-auto flex flex-col max-h-[50vh]"
-            :class="isARMode ? 'translate-y-full' : 'translate-y-0'"
-         >
-            <!-- Drag Handle -->
-            <div class="w-full flex justify-center pt-3 pb-1"><div class="w-12 h-1.5 bg-white/20 rounded-full"></div></div>
+          <div class="p-6 overflow-y-auto min-h-[200px]">
+            <div v-if="activeTab === 'stats'" class="grid grid-cols-2 gap-3">
+              <div
+                v-for="(stat, idx) in [
+                  {
+                    startLabel: 'Temp',
+                    val: planetData.quickStats?.temperature,
+                  },
+                  {
+                    startLabel: 'Gravity',
+                    val: planetData.quickStats?.gravity,
+                  },
+                  {
+                    startLabel: 'Diameter',
+                    val: planetData.quickStats?.diameter,
+                  },
+                  {
+                    startLabel: 'Moons',
+                    val: planetData.quickStats?.moons?.toString(),
+                  },
+                ]"
+                :key="idx"
+                class="bg-white/5 p-3 rounded-xl border border-white/5 flex flex-col"
+              >
+                <span
+                  class="text-[10px] uppercase text-gray-500 tracking-wider"
+                  >{{ stat.startLabel }}</span
+                >
+                <span class="text-sm font-bold text-white mt-1">{{
+                  stat.val
+                }}</span>
+              </div>
+            </div>
+            <div v-else-if="activeTab === 'facts'">
+              <p class="text-sm leading-relaxed text-gray-300 mb-4 font-light">
+                "{{ planetData.funFacts[currentFactIdx] }}"
+              </p>
+              <button
+                @click="nextFact"
+                class="w-full py-2 bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 rounded-lg text-xs font-bold uppercase"
+              >
+                Next Fact
+              </button>
+            </div>
+            <div v-else>
+              <p
+                class="text-sm leading-relaxed text-gray-300 font-light text-justify"
+              >
+                {{
+                  activeTab === "structure"
+                    ? planetData.structure
+                    : planetData.atmosphere
+                }}
+              </p>
+            </div>
 
-            <!-- Tabs Scroll -->
-            <div class="flex overflow-x-auto gap-4 px-6 py-2 pb-0 no-scrollbar border-b border-white/5">
-               <button v-for="tab in ['stats', 'structure', 'atmosphere', 'facts']" :key="tab" @click="activeTab = tab" class="pb-3 text-xs font-bold uppercase tracking-widest whitespace-nowrap transition-colors relative" :class="activeTab === tab ? 'text-cyan-400' : 'text-gray-500'">
-                  {{ tab }}
-                  <div v-if="activeTab === tab" class="absolute bottom-0 left-0 w-full h-0.5 bg-cyan-400 shadow-[0_0_8px_cyan]"></div>
-               </button>
+            <div class="mt-6 pt-4 border-t border-white/10">
+              <button
+                @click="
+                  router.push({
+                    name: 'quiz',
+                    params: { id: planetData.id },
+                    query: { from: 'planet-detail' },
+                  })
+                "
+                class="w-full py-3 bg-cyan-600 hover:bg-cyan-500 transition-colors rounded-xl text-white font-bold uppercase text-xs tracking-wider shadow-lg shadow-cyan-500/20"
+              >
+                Start Mission
+              </button>
             </div>
-            
-            <!-- Content Area -->
-            <div class="p-6 overflow-y-auto min-h-[200px]">
-               <div v-if="activeTab === 'stats'" class="grid grid-cols-2 gap-3">
-                  <div v-for="(stat, idx) in [{startLabel:'Temp', val:planetData.quickStats?.temperature}, {startLabel:'Gravity', val:planetData.quickStats?.gravity}, {startLabel:'Diameter', val:planetData.quickStats?.diameter}, {startLabel:'Moons', val:planetData.quickStats?.moons?.toString()}]" :key="idx" class="bg-white/5 p-3 rounded-xl border border-white/5 flex flex-col">
-                     <span class="text-[10px] uppercase text-gray-500 tracking-wider">{{stat.startLabel}}</span>
-                     <span class="text-sm font-bold text-white mt-1">{{stat.val}}</span>
-                  </div>
-               </div>
-               <div v-else-if="activeTab === 'facts'">
-                  <p class="text-sm leading-relaxed text-gray-300 mb-4 font-light">"{{ planetData.funFacts[currentFactIdx] }}"</p>
-                  <button @click="nextFact" class="w-full py-2 bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 rounded-lg text-xs font-bold uppercase">Next Fact</button>
-               </div>
-               <div v-else>
-                  <p class="text-sm leading-relaxed text-gray-300 font-light text-justify">{{ activeTab === 'structure' ? planetData.structure : planetData.atmosphere }}</p>
-               </div>
-               
-               <div class="mt-6 pt-4 border-t border-white/10">
-                 <button @click="router.push({ name: 'quiz', params: { id: planetData.id }, query: { from: 'planet-detail' } })" class="w-full py-3 bg-cyan-600 hover:bg-cyan-500 transition-colors rounded-xl text-white font-bold uppercase text-xs tracking-wider shadow-lg shadow-cyan-500/20">Start Mission</button>
-               </div>
-            </div>
-         </div>
+          </div>
+        </div>
       </div>
-    
-    <!-- END UI LAYER -->
     </div>
   </div>
 </template>
 
 <script setup>
-// LOGIKA ANDA TIDAK DIUBAH SAMA SEKALI
 import { ref, onMounted, onUnmounted, computed, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import * as THREE from "three";
@@ -298,7 +569,7 @@ const enableSpeech = async () => {
 };
 const currentFactIdx = ref(0);
 const cameraError = ref(null);
-const activeTab = ref('facts'); // 'stats', 'structure', 'atmosphere', 'facts'
+const activeTab = ref("facts");
 
 // Typewriter State
 const displayedFact = ref("");
@@ -308,13 +579,12 @@ let typingInterval = null;
 let scene, camera, renderer, controls, planetMesh, starMesh;
 let animationFrame;
 const loader = new GLTFLoader();
-// Objects and timeline used for event demos (gerhana, musim, komet)
+// Objects and timeline used for event demos
 let eventObjects = [];
 let eventTimeline = null;
 const currentEvent = computed(() => route.query.event || null);
 
 const cleanupScene = () => {
-  // stop any running timelines and animations
   try {
     if (eventTimeline) {
       eventTimeline.kill();
@@ -340,7 +610,6 @@ const cleanupScene = () => {
     }
   } catch (e) {}
 
-  // remove event objects
   eventObjects.forEach((o) => {
     try {
       scene && scene.remove(o);
@@ -368,23 +637,23 @@ const toggleAudio = async () => {
     isSpeaking.value = false;
   } else {
     let textToSpeak = "";
-    
-    // Read content based on active tab
-    if (activeTab.value === 'facts') {
+
+    if (activeTab.value === "facts") {
       textToSpeak = planetData.value.funFacts[currentFactIdx.value];
-    } else if (activeTab.value === 'atmosphere') {
+    } else if (activeTab.value === "atmosphere") {
       textToSpeak = `Atmosfer ${planetData.value.name}. ${planetData.value.atmosphere}`;
-    } else if (activeTab.value === 'structure') {
+    } else if (activeTab.value === "structure") {
       textToSpeak = `Struktur ${planetData.value.name}. ${planetData.value.structure}`;
-    } else if (activeTab.value === 'stats') {
+    } else if (activeTab.value === "stats") {
       const stats = planetData.value.quickStats;
-      textToSpeak = `Statistik ${planetData.value.name}. ` +
-        `Suhu: ${stats?.temperature || 'Tidak tersedia'}. ` +
-        `Gravitasi: ${stats?.gravity || 'Tidak tersedia'}. ` +
-        `Diameter: ${stats?.diameter || 'Tidak tersedia'}. ` +
-        `Jumlah bulan: ${stats?.moons || 'Tidak tersedia'}.`;
+      textToSpeak =
+        `Statistik ${planetData.value.name}. ` +
+        `Suhu: ${stats?.temperature || "Tidak tersedia"}. ` +
+        `Gravitasi: ${stats?.gravity || "Tidak tersedia"}. ` +
+        `Diameter: ${stats?.diameter || "Tidak tersedia"}. ` +
+        `Jumlah bulan: ${stats?.moons || "Tidak tersedia"}.`;
     }
-    
+
     try {
       await speak(textToSpeak);
     } catch (e) {
@@ -433,22 +702,16 @@ const initScene = () => {
   containerRef.value.appendChild(renderer.domElement);
 
   controls = new OrbitControls(camera, renderer.domElement);
-
   controls.enableDamping = true;
   controls.dampingFactor = 0.05;
-
   controls.enableZoom = true;
   controls.zoomSpeed = 1.5;
-
   controls.minDistance = 3;
   controls.maxDistance = 20;
-
   controls.enablePan = false;
-
   controls.autoRotate = true;
   controls.autoRotateSpeed = 2;
 
-  // Lighting
   const ambient = new THREE.AmbientLight(0xffffff, 0.8);
   scene.add(ambient);
   const sunLight = new THREE.DirectionalLight(0xffffff, 2.5);
@@ -476,88 +739,33 @@ const initScene = () => {
         duration: 1.5,
         ease: "elastic.out(1, 0.5)",
         onComplete: () => {
-          if (currentEvent.value) {
-            applyEventEffect(currentEvent.value);
-          }
+          if (currentEvent.value) applyEventEffect(currentEvent.value);
         },
       });
     },
     undefined,
     (err) => {
       console.warn(`Gagal load GLTF ${modelPath}`, err);
-      const base = planetData.value.file.replace(/\.glb$/i, "");
-      const texPathJpg = `/textures/${base}.jpg`;
-      const texPathPng = `/textures/${base}.png`;
-      const texLoader = new THREE.TextureLoader();
-      texLoader.load(
-        texPathJpg,
-        (tex) => {
-          const radius = 3;
-          planetMesh = new THREE.Mesh(
-            new THREE.SphereGeometry(radius, 32, 32),
-            new THREE.MeshStandardMaterial({ map: tex })
-          );
-          scene.add(planetMesh);
-          planetMesh.scale.set(0, 0, 0);
-          gsap.to(planetMesh.scale, {
-            x: 1,
-            y: 1,
-            z: 1,
-            duration: 1.5,
-            ease: "elastic.out(1, 0.5)",
-            onComplete: () => {
-              if (currentEvent.value) applyEventEffect(currentEvent.value);
-            },
-          });
-        },
-        undefined,
-        () => {
-          texLoader.load(
-            texPathPng,
-            (tex2) => {
-              const radius = 3;
-              planetMesh = new THREE.Mesh(
-                new THREE.SphereGeometry(radius, 32, 32),
-                new THREE.MeshStandardMaterial({ map: tex2 })
-              );
-              scene.add(planetMesh);
-              planetMesh.scale.set(0, 0, 0);
-              gsap.to(planetMesh.scale, {
-                x: 1,
-                y: 1,
-                z: 1,
-                duration: 1.5,
-                ease: "elastic.out(1, 0.5)",
-                onComplete: () => {
-                  if (currentEvent.value) applyEventEffect(currentEvent.value);
-                },
-              });
-            },
-            undefined,
-            () => {
-              const radius = 3;
-              planetMesh = new THREE.Mesh(
-                new THREE.SphereGeometry(radius, 32, 32),
-                new THREE.MeshStandardMaterial({
-                  color: planetData.value.color || 0x888888,
-                })
-              );
-              scene.add(planetMesh);
-              planetMesh.scale.set(0, 0, 0);
-              gsap.to(planetMesh.scale, {
-                x: 1,
-                y: 1,
-                z: 1,
-                duration: 1.5,
-                ease: "elastic.out(1, 0.5)",
-                onComplete: () => {
-                  if (currentEvent.value) applyEventEffect(currentEvent.value);
-                },
-              });
-            }
-          );
-        }
+      // Fallback Sphere
+      const radius = 3;
+      planetMesh = new THREE.Mesh(
+        new THREE.SphereGeometry(radius, 32, 32),
+        new THREE.MeshStandardMaterial({
+          color: planetData.value.color || 0x888888,
+        })
       );
+      scene.add(planetMesh);
+      planetMesh.scale.set(0, 0, 0);
+      gsap.to(planetMesh.scale, {
+        x: 1,
+        y: 1,
+        z: 1,
+        duration: 1.5,
+        ease: "elastic.out(1, 0.5)",
+        onComplete: () => {
+          if (currentEvent.value) applyEventEffect(currentEvent.value);
+        },
+      });
     }
   );
 
@@ -615,9 +823,7 @@ const toggleAR = async () => {
       cameraError.value = "Izin kamera ditolak.";
       try {
         await speak("Gagal akses kamera.");
-      } catch (e) {
-        console.warn(e);
-      }
+      } catch (e) {}
     }
   } else {
     stopAR();
@@ -663,9 +869,7 @@ const nextFact = () => {
     });
   try {
     speech.cancel();
-  } catch (e) {
-    console.warn("[Speech] cancel failed", e);
-  }
+  } catch (e) {}
   isSpeaking.value = false;
 };
 
@@ -687,17 +891,12 @@ onMounted(() => {
           voiceStatusMsg.value = c
             ? `Suara siap (${c})`
             : "Tidak ada suara terdeteksi";
-          console.log("[Speech] warm-up voices:", c);
         })
         .catch((e) => {
-          console.warn("[Speech] init failed", e);
           voiceStatusMsg.value = "Gagal memuat suara";
         });
-    } else {
-      voiceStatusMsg.value = "Speech tidak didukung di browser ini";
     }
   } catch (e) {
-    console.warn("[Speech] check failed", e);
     voiceStatusMsg.value = "Gagal periksa kemampuan suara";
   }
 });
@@ -720,8 +919,7 @@ const applyEventEffect = async (eventType) => {
 
   if (eventType === "solar-eclipse" || eventType === "lunar-eclipse") {
     const planetBox = new THREE.Box3().setFromObject(planetMesh);
-    const planetSizeVec = planetBox.getSize(new THREE.Vector3());
-    const base = Math.max(planetSizeVec.length(), 5);
+    const base = Math.max(planetBox.getSize(new THREE.Vector3()).length(), 5);
 
     const sunObj = await new Promise((res) =>
       loader.load(
@@ -755,13 +953,13 @@ const applyEventEffect = async (eventType) => {
           color: 0xfdb813,
           emissive: 0xffffaa,
           emissiveIntensity: 1.8,
-          roughness: 0.25,
         })
       );
     }
     sun.position.set(-base * 2.5, 0, -base * 0.15);
     sun.castShadow = false;
 
+    // --- CONTINUATION FROM YOUR SNIPPET ---
     let moon;
     if (moonObj) {
       moon = moonObj;
@@ -863,12 +1061,9 @@ const applyEventEffect = async (eventType) => {
       });
     }
     speak("Menampilkan hujan komet. Perhatikan lintasan acak dan cepat.");
-  } else {
-    // unknown event: do nothing
   }
 };
 
-// re-run event when query changes
 watch(currentEvent, (val) => {
   if (val && planetMesh) applyEventEffect(val);
 });
@@ -879,9 +1074,7 @@ onUnmounted(() => {
   if (typingInterval) clearInterval(typingInterval);
   try {
     speech.cancel();
-  } catch (e) {
-    console.warn("[Speech] cancel failed", e);
-  }
+  } catch (e) {}
   cleanupScene();
 });
 
@@ -895,29 +1088,33 @@ watch(
 </script>
 
 <style scoped>
-/* BACKGROUND GRADIENT */
 .bg-radial-gradient {
   background: radial-gradient(circle at center, transparent 0%, #050510 90%);
 }
-
-/* CUSTOM ANIMATIONS */
 @keyframes wave {
-  0%, 100% { height: 30%; }
-  50% { height: 80%; }
+  0%,
+  100% {
+    height: 30%;
+  }
+  50% {
+    height: 80%;
+  }
 }
 .animate-wave {
   animation: wave 1s ease-in-out infinite;
 }
-
 @keyframes blink {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0; }
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0;
+  }
 }
 .animate-blink {
   animation: blink 1s step-end infinite;
 }
-
-/* TRANSITIONS */
 .fade-slide-enter-active,
 .fade-slide-leave-active {
   transition: all 0.3s ease;
@@ -930,13 +1127,11 @@ watch(
   opacity: 0;
   transform: translateY(-10px);
 }
-
-/* UTILITY */
 .scrollbar-hide::-webkit-scrollbar {
-    display: none;
+  display: none;
 }
 .scrollbar-hide {
-    -ms-overflow-style: none;
-    scrollbar-width: none;
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
 </style>

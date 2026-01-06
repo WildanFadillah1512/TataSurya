@@ -42,6 +42,7 @@ const modelAssets = {
 };
 
 // --- KONFIGURASI SCENE ---
+// NOTE: Saya sesuaikan nilai 'camPos.z' agar base-nya sudah cukup jauh
 const scenes = [
   {
     id: "solar-eclipse",
@@ -51,7 +52,7 @@ const scenes = [
       "Geser slider untuk melihat Bulan mengorbit di antara Matahari dan Bumi. Perhatikan bayangan kecil Bulan jatuh ke permukaan Bumi.",
     audioText:
       "Gerhana Matahari terjadi ketika Bulan berada di antara Matahari dan Bumi. Geser slider untuk melihat pergerakan Bulan.",
-    camPos: { x: 0, y: 5, z: 35 },
+    camPos: { x: 0, y: 2, z: 40 }, // Z diperbesar
     logic: "eclipse-solar",
     objects: [
       { type: "sun", size: 2.5, pos: { x: -12, y: 0, z: 0 } },
@@ -67,7 +68,7 @@ const scenes = [
       "Bulan bergerak melengkung menuju belakang Bumi (Umbra). Perhatikan Bulan menjadi gelap saat tertutup Bumi sepenuhnya.",
     audioText:
       "Gerhana Bulan terjadi ketika Bumi berada di antara Matahari dan Bulan. Bulan akan masuk ke bayangan Bumi yang disebut Umbra.",
-    camPos: { x: 0, y: 5, z: 35 },
+    camPos: { x: 0, y: 2, z: 40 }, // Z diperbesar
     logic: "eclipse-lunar",
     objects: [
       { type: "sun", size: 2.5, pos: { x: -12, y: 0, z: 0 } },
@@ -83,7 +84,7 @@ const scenes = [
       "Bumi miring 23.5°. Slider mensimulasikan revolusi tahunan. Perhatikan kutub mana yang condong ke Matahari (Kiri = Panas, Kanan = Dingin).",
     audioText:
       "Pergantian musim terjadi karena kemiringan sumbu Bumi sebesar 23 koma 5 derajat. Geser slider untuk melihat perubahan musim sepanjang tahun.",
-    camPos: { x: 0, y: 2, z: 25 },
+    camPos: { x: 0, y: 2, z: 30 },
     logic: "seasons-tilt",
     objects: [
       { type: "sun", size: 2.5, pos: { x: -10, y: 0, z: 0 } },
@@ -98,7 +99,7 @@ const scenes = [
       "Bumi berputar pada porosnya. Perhatikan batas 'Terminator' (garis antara siang dan malam) yang bergerak melintasi benua.",
     audioText:
       "Siang dan malam terjadi karena Bumi berputar pada porosnya. Satu kali putaran penuh membutuhkan waktu 24 jam.",
-    camPos: { x: 0, y: 0, z: 20 },
+    camPos: { x: 0, y: 0, z: 25 },
     logic: "day-night",
     objects: [
       { type: "sun", size: 2.5, pos: { x: -10, y: 0, z: 0 } },
@@ -113,7 +114,7 @@ const scenes = [
       "Hujan meteor/komet melintas dengan kecepatan dan posisi acak.",
     audioText:
       "Hujan meteor terjadi ketika Bumi melewati jalur debu yang ditinggalkan oleh komet. Perhatikan lintasan meteor yang melintasi langit.",
-    camPos: { x: 0, y: 0, z: 40 },
+    camPos: { x: 0, y: 0, z: 45 },
     logic: "comet-shower",
     cometCount: 20,
     objects: [
@@ -167,7 +168,7 @@ const toggleAudio = async () => {
   }
 };
 
-// --- AR FUNCTIONS (Using Composable) ---
+// --- AR FUNCTIONS ---
 const toggleAR = async () => {
   await toggleARComposable(videoRef.value, scene, starSystem);
 };
@@ -176,6 +177,7 @@ const stopAR = () => {
   stopARComposable(videoRef.value, scene, starSystem, 0x020205);
 };
 
+// --- 3D SETUP ---
 const initThree = () => {
   const w = window.innerWidth;
   const h = window.innerHeight;
@@ -192,7 +194,6 @@ const initThree = () => {
   });
 
   renderer.setClearColor(0x000000, 0);
-
   renderer.setSize(w, h);
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
   renderer.shadowMap.enabled = true;
@@ -213,6 +214,7 @@ const initThree = () => {
 
   controls = new OrbitControls(camera, renderer.domElement);
   controls.enableDamping = true;
+  controls.enablePan = false; // Disable pan biar user ga geser model keluar layar
 
   const ambientLight = new THREE.AmbientLight(0xffffff, 0.05);
   scene.add(ambientLight);
@@ -229,6 +231,40 @@ const initThree = () => {
   loadScene(0);
   animate();
   window.addEventListener("resize", onResize);
+};
+
+// --- PERBAIKAN UTAMA: RESPONSIVITAS KAMERA ---
+// Fungsi ini memaksa kamera mundur jika rasio layar kecil (HP Potrait)
+const updateCameraResponsive = (baseZ, duration = 0) => {
+  if (!camera) return;
+  const w = window.innerWidth;
+  const h = window.innerHeight;
+  const aspect = w / h;
+
+  let targetZ = baseZ;
+
+  // JIKA DI HP (PORTRAIT / ASPECT RATIO KECIL)
+  if (aspect < 0.8) {
+    // Rumus: BaseZ dibagi aspect ratio, dikali buffer 1.4
+    // Semakin kecil aspect (semakin pipih layar), semakin besar Z nya (mundur)
+    targetZ = (baseZ / aspect) * 1.4;
+  } else if (aspect < 1.2) {
+    // Tablet / Kotak
+    targetZ = (baseZ / aspect) * 1.2;
+  }
+
+  // Terapkan posisi baru
+  if (duration > 0) {
+    gsap.to(camera.position, {
+      z: targetZ,
+      duration: duration,
+      ease: "power2.inOut",
+      onUpdate: () => controls.update(),
+    });
+  } else {
+    camera.position.z = targetZ;
+    controls.update();
+  }
 };
 
 const loadScene = (index) => {
@@ -267,15 +303,20 @@ const loadScene = (index) => {
     createCometShower(scene, cometGroup, config.cometCount, true);
   }
 
+  // --- SET POSISI AWAL KAMERA ---
+  // 1. Reset target orbit ke tengah
+  controls.target.set(0, 0, 0);
+
+  // 2. Set posisi X dan Y (tetap standar)
   gsap.to(camera.position, {
     x: config.camPos.x,
     y: config.camPos.y,
-    z: config.camPos.z,
     duration: 1.5,
     ease: "power2.inOut",
   });
 
-  controls.target.set(0, 0, 0);
+  // 3. Panggil fungsi sakti penyesuai layar untuk sumbu Z
+  updateCameraResponsive(config.camPos.z, 1.5);
 
   if (config.logic === "eclipse-solar" || config.logic === "eclipse-lunar")
     sliderValue.value = 0;
@@ -598,14 +639,23 @@ const prevScene = () => {
   isSpeaking.value = false;
 };
 
+// --- RESPONSIVE HANDLER (REVISI) ---
 const onResize = () => {
   if (!camera || !renderer) return;
   const w = window.innerWidth;
   const h = window.innerHeight;
-  camera.aspect = w / h;
+  const aspect = w / h;
+
+  camera.aspect = aspect;
   camera.updateProjectionMatrix();
+
   renderer.setSize(w, h);
   composer.setSize(w, h);
+
+  // Update posisi kamera saat resize
+  if (scenes[activeIndex.value]) {
+    updateCameraResponsive(scenes[activeIndex.value].camPos.z, 0);
+  }
 };
 
 const goBack = () => {
@@ -896,47 +946,43 @@ onUnmounted(() => {
     </div>
 
     <div
-      class="fixed right-4 top-[40%] -translate-y-1/2 z-30 flex flex-col gap-4 pointer-events-auto md:top-[40%] md:right-6"
+      class="fixed right-4 top-1/2 -translate-y-1/2 z-50 flex flex-col gap-6 pointer-events-auto md:right-6"
     >
       <button
-        @click="toggleAR"
-        class="w-12 h-12 backdrop-blur-md border rounded-xl flex items-center justify-center transition-all group relative overflow-hidden shadow-lg cursor-pointer pointer-events-auto"
-        :class="
-          isARMode
-            ? 'bg-red-500/20 border-red-400 text-red-400 animate-pulse'
-            : 'bg-black/40 border-white/20 text-white hover:border-cyan-400 hover:text-cyan-300'
-        "
+        v-if="!isARMode"
+        @click="goToLeaderboard"
+        class="w-12 h-12 flex items-center justify-center rounded-full bg-yellow-500/10 hover:bg-yellow-500/20 border border-yellow-500/30 backdrop-blur-md transition-all group shadow-lg text-yellow-200 hover:scale-105 active:scale-95 relative cursor-pointer pointer-events-auto"
       >
-        <span class="text-xl relative z-10">{{ isARMode ? "✕" : "📷" }}</span>
+        <span class="text-xl">🏆</span>
 
         <span
           class="hidden md:block absolute right-14 bg-black/80 text-white text-[10px] px-2 py-1 rounded border border-white/10 opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none"
         >
-          {{ isARMode ? "STOP AR" : "START AR" }}
+          LEADERBOARD
         </span>
       </button>
 
       <button
         @click="toggleAudio"
         :disabled="!speechAvailable"
-        class="w-12 h-12 backdrop-blur-md border border-white/20 rounded-xl flex items-center justify-center transition-all relative group shadow-lg cursor-pointer pointer-events-auto"
+        class="w-12 h-12 backdrop-blur-md border rounded-full flex items-center justify-center transition-all relative group shadow-lg cursor-pointer pointer-events-auto"
         :class="
           isSpeaking
-            ? 'bg-black/60 border-green-500 text-green-400 shadow-[0_0_15px_rgba(34,197,94,0.4)]'
-            : !speechAvailable
-            ? 'bg-black/40 opacity-50 cursor-not-allowed'
-            : 'bg-black/40 hover:border-yellow-400 hover:text-yellow-300'
+            ? 'bg-emerald-500/20 border-emerald-500 text-emerald-400'
+            : 'bg-black/60 border-white/20 text-white hover:bg-white/20'
         "
       >
-        <span class="text-xl">{{ isSpeaking ? "🔊" : "🔈" }}</span>
+        <span class="text-xl relative z-10">{{
+          isSpeaking ? "🔊" : "🔈"
+        }}</span>
 
         <div
           v-if="isSpeaking"
-          class="absolute inset-0 flex items-center justify-center gap-[2px] opacity-30"
+          class="absolute inset-0 flex items-center justify-center gap-[2px] opacity-30 rounded-full overflow-hidden"
         >
-          <div class="w-1 bg-green-400 animate-wave h-3"></div>
-          <div class="w-1 bg-green-400 animate-wave h-5 delay-75"></div>
-          <div class="w-1 bg-green-400 animate-wave h-2 delay-150"></div>
+          <div class="w-1 bg-emerald-400 animate-wave h-3"></div>
+          <div class="w-1 bg-emerald-400 animate-wave h-5 delay-75"></div>
+          <div class="w-1 bg-emerald-400 animate-wave h-2 delay-150"></div>
         </div>
 
         <span
@@ -947,16 +993,24 @@ onUnmounted(() => {
       </button>
 
       <button
-        v-if="!isARMode"
-        @click="goToLeaderboard"
-        class="w-12 h-12 flex items-center justify-center rounded-xl bg-yellow-500/10 hover:bg-yellow-500/20 border border-yellow-500/30 backdrop-blur-md transition-all group shadow-lg text-yellow-200 hover:scale-105 active:scale-95 relative cursor-pointer pointer-events-auto"
+        @click="toggleAR"
+        class="w-12 h-12 backdrop-blur-md border rounded-full flex items-center justify-center transition-all group relative overflow-hidden shadow-lg cursor-pointer pointer-events-auto"
+        :class="
+          isARMode
+            ? 'bg-red-500/20 border-red-500 text-red-500 animate-pulse'
+            : 'bg-black/60 border-white/20 text-white hover:border-cyan-400 hover:text-cyan-400'
+        "
       >
-        <span class="text-xl">🏆</span>
+        <span
+          class="relative z-10 font-bold font-mono text-sm tracking-tighter"
+        >
+          {{ isARMode ? "✕" : "AR" }}
+        </span>
 
         <span
           class="hidden md:block absolute right-14 bg-black/80 text-white text-[10px] px-2 py-1 rounded border border-white/10 opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none"
         >
-          LEADERBOARD
+          {{ isARMode ? "STOP AR" : "START AR" }}
         </span>
       </button>
 
