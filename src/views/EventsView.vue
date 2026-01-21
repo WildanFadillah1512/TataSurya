@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, onUnmounted, computed } from "vue";
+import { ref, onMounted, onUnmounted, computed, nextTick } from "vue";
 import { useRouter } from "vue-router";
 
 import * as THREE from "three";
@@ -42,7 +42,6 @@ const modelAssets = {
 };
 
 // --- KONFIGURASI SCENE ---
-// NOTE: Saya sesuaikan nilai 'camPos.z' agar base-nya sudah cukup jauh
 const scenes = [
   {
     id: "solar-eclipse",
@@ -52,7 +51,7 @@ const scenes = [
       "Geser slider untuk melihat Bulan mengorbit di antara Matahari dan Bumi. Perhatikan bayangan kecil Bulan jatuh ke permukaan Bumi.",
     audioText:
       "Gerhana Matahari terjadi ketika Bulan berada di antara Matahari dan Bumi. Geser slider untuk melihat pergerakan Bulan.",
-    camPos: { x: 0, y: 2, z: 40 }, // Z diperbesar
+    camPos: { x: 0, y: 2, z: 40 },
     logic: "eclipse-solar",
     objects: [
       { type: "sun", size: 2.5, pos: { x: -12, y: 0, z: 0 } },
@@ -68,7 +67,7 @@ const scenes = [
       "Bulan bergerak melengkung menuju belakang Bumi (Umbra). Perhatikan Bulan menjadi gelap saat tertutup Bumi sepenuhnya.",
     audioText:
       "Gerhana Bulan terjadi ketika Bumi berada di antara Matahari dan Bulan. Bulan akan masuk ke bayangan Bumi yang disebut Umbra.",
-    camPos: { x: 0, y: 2, z: 40 }, // Z diperbesar
+    camPos: { x: 0, y: 2, z: 40 },
     logic: "eclipse-lunar",
     objects: [
       { type: "sun", size: 2.5, pos: { x: -12, y: 0, z: 0 } },
@@ -177,6 +176,75 @@ const stopAR = () => {
   stopARComposable(videoRef.value, scene, starSystem, 0x020205);
 };
 
+// --- KAMERA RESPONSIF (PERBAIKAN AGRESIF) ---
+const getResponsiveZ = (baseZ, sceneId) => {
+  if (!camera) return baseZ;
+  const aspect = camera.aspect;
+
+  // Jika Landscape (Desktop/Tablet Landscape), pakai nilai asli
+  if (aspect >= 1) {
+    return baseZ;
+  }
+
+  // Jika Portrait (HP)
+  // Kita kalikan baseZ secara agresif agar kamera mundur jauh
+  // Semakin kecil aspect, semakin jauh kamera.
+
+  // Khusus scene Gerhana (Eclipse) yang objeknya lebar (Matahari dikiri, Bumi dikanan)
+  // Kita butuh view yang SANGAT lebar.
+  if (sceneId === "solar-eclipse" || sceneId === "lunar-eclipse") {
+    // Pakai multiplier 2.5x sampai 3.0x untuk portrait
+    return baseZ * 2.8;
+  }
+
+  // Untuk scene lain (Seasons, DayNight)
+  return baseZ * 2.0;
+};
+
+const updateCameraResponsive = (baseZ, duration = 0) => {
+  if (!camera) return;
+  const sceneId = scenes[activeIndex.value].id;
+  const targetZ = getResponsiveZ(baseZ, sceneId);
+
+  // Pastikan controls target tetap di tengah
+  if (controls) {
+    controls.target.set(0, 0, 0);
+  }
+
+  if (duration > 0) {
+    gsap.to(camera.position, {
+      z: targetZ,
+      duration: duration,
+      ease: "power2.inOut",
+      onUpdate: () => controls.update(),
+    });
+  } else {
+    camera.position.z = targetZ;
+    controls.update();
+  }
+};
+
+const onResize = () => {
+  if (!camera || !renderer) return;
+
+  const w = window.innerWidth;
+  const h = window.innerHeight;
+  const aspect = w / h;
+
+  // Update matrix
+  camera.aspect = aspect;
+  camera.updateProjectionMatrix();
+
+  renderer.setSize(w, h);
+  composer.setSize(w, h);
+
+  // Paksa update posisi kamera saat resize
+  if (scenes[activeIndex.value]) {
+    const baseZ = scenes[activeIndex.value].camPos.z;
+    updateCameraResponsive(baseZ, 0); // 0 duration = instant
+  }
+};
+
 // --- 3D SETUP ---
 const initThree = () => {
   const w = window.innerWidth;
@@ -185,7 +253,8 @@ const initThree = () => {
   scene = new THREE.Scene();
   scene.background = new THREE.Color(0x020205);
 
-  camera = new THREE.PerspectiveCamera(45, w / h, 0.1, 1000);
+  // Far plane diset sangat jauh agar tidak ada yang terpotong (clipping)
+  camera = new THREE.PerspectiveCamera(45, w / h, 0.1, 50000);
 
   renderer = new THREE.WebGLRenderer({
     canvas: canvasRef.value,
@@ -205,7 +274,7 @@ const initThree = () => {
     new THREE.Vector2(w, h),
     1.0,
     0.4,
-    0.85
+    0.85,
   );
 
   composer = new EffectComposer(renderer);
@@ -214,7 +283,11 @@ const initThree = () => {
 
   controls = new OrbitControls(camera, renderer.domElement);
   controls.enableDamping = true;
-  controls.enablePan = false; // Disable pan biar user ga geser model keluar layar
+  controls.enablePan = false;
+
+  // Batas Zoom
+  controls.minDistance = 5;
+  controls.maxDistance = 500; // Izinkan user zoom out jauh sekali
 
   const ambientLight = new THREE.AmbientLight(0xffffff, 0.05);
   scene.add(ambientLight);
@@ -225,59 +298,31 @@ const initThree = () => {
   scene.add(fillDir);
 
   if (typeof createStarfield === "function") createStarfield();
-  if (typeof entityGroup !== "undefined") scene.add(entityGroup);
-  if (typeof cometGroup !== "undefined") scene.add(cometGroup);
+  scene.add(entityGroup);
+  scene.add(cometGroup);
 
+  // Setup Initial
+  onResize();
   loadScene(0);
-  animate();
+
   window.addEventListener("resize", onResize);
-};
-
-// --- PERBAIKAN UTAMA: RESPONSIVITAS KAMERA ---
-// Fungsi ini memaksa kamera mundur jika rasio layar kecil (HP Potrait)
-const updateCameraResponsive = (baseZ, duration = 0) => {
-  if (!camera) return;
-  const w = window.innerWidth;
-  const h = window.innerHeight;
-  const aspect = w / h;
-
-  let targetZ = baseZ;
-
-  // JIKA DI HP (PORTRAIT / ASPECT RATIO KECIL)
-  if (aspect < 0.8) {
-    // Rumus: BaseZ dibagi aspect ratio, dikali buffer 1.4
-    // Semakin kecil aspect (semakin pipih layar), semakin besar Z nya (mundur)
-    targetZ = (baseZ / aspect) * 1.4;
-  } else if (aspect < 1.2) {
-    // Tablet / Kotak
-    targetZ = (baseZ / aspect) * 1.2;
-  }
-
-  // Terapkan posisi baru
-  if (duration > 0) {
-    gsap.to(camera.position, {
-      z: targetZ,
-      duration: duration,
-      ease: "power2.inOut",
-      onUpdate: () => controls.update(),
-    });
-  } else {
-    camera.position.z = targetZ;
-    controls.update();
-  }
+  animate();
 };
 
 const loadScene = (index) => {
   entityGroup.clear();
   cometGroup.clear();
 
+  // Reset slider dan status
   sliderValue.value = 50;
+  statusLabel.value = "";
 
   const config = scenes[index];
   config.objects.forEach(createObject);
 
+  // Setup Logic Objects
   const earthObj = entityGroup.children.find(
-    (c) => c.userData.type === "earth"
+    (c) => c.userData.type === "earth",
   );
   if (earthObj) {
     entityGroup.children.forEach((c) => {
@@ -303,24 +348,26 @@ const loadScene = (index) => {
     createCometShower(scene, cometGroup, config.cometCount, true);
   }
 
-  // --- SET POSISI AWAL KAMERA ---
-  // 1. Reset target orbit ke tengah
+  // --- LOGIKA POSISI KAMERA ---
+  // Reset target control ke tengah
   controls.target.set(0, 0, 0);
 
-  // 2. Set posisi X dan Y (tetap standar)
+  // Hitung posisi Z yang aman untuk layar ini
+  const safeZ = getResponsiveZ(config.camPos.z, config.id);
+
+  // Pindahkan kamera
   gsap.to(camera.position, {
     x: config.camPos.x,
     y: config.camPos.y,
+    z: safeZ,
     duration: 1.5,
     ease: "power2.inOut",
+    onUpdate: () => controls.update(),
   });
 
-  // 3. Panggil fungsi sakti penyesuai layar untuk sumbu Z
-  updateCameraResponsive(config.camPos.z, 1.5);
-
+  // Set nilai awal slider spesifik
   if (config.logic === "eclipse-solar" || config.logic === "eclipse-lunar")
     sliderValue.value = 0;
-  else sliderValue.value = sliderValue.value ?? 50;
 
   updateSceneAtT(sliderValue.value / 100);
 };
@@ -330,10 +377,10 @@ const updateSceneAtT = (t) => {
 
   if (currentScene.logic === "eclipse-solar") {
     const earthObj = entityGroup.children.find(
-      (c) => c.userData.type === "earth"
+      (c) => c.userData.type === "earth",
     );
     const moonObj = entityGroup.children.find(
-      (c) => c.userData.type === "moon"
+      (c) => c.userData.type === "moon",
     );
     const sunObj = entityGroup.children.find((c) => c.userData.type === "sun");
     if (earthObj && moonObj) {
@@ -342,9 +389,12 @@ const updateSceneAtT = (t) => {
       const span = moonObj.userData.span || Math.PI;
       const zScale = moonObj.userData.zScale || 0.6;
       const angle = start + t * span;
-      moonObj.position.x = earthObj.position.x + Math.cos(angle) * radius;
-      moonObj.position.z =
+      const moonAngleX = earthObj.position.x + Math.cos(angle) * radius;
+      const moonAngleZ =
         earthObj.position.z + Math.sin(angle) * radius * zScale;
+
+      moonObj.position.x = moonAngleX;
+      moonObj.position.z = moonAngleZ;
       moonObj.rotation.y = -angle;
 
       if (sunObj) {
@@ -366,10 +416,10 @@ const updateSceneAtT = (t) => {
     }
   } else if (currentScene.logic === "eclipse-lunar") {
     const earthObj = entityGroup.children.find(
-      (c) => c.userData.type === "earth"
+      (c) => c.userData.type === "earth",
     );
     const moonObj = entityGroup.children.find(
-      (c) => c.userData.type === "moon"
+      (c) => c.userData.type === "moon",
     );
     const sunObj = entityGroup.children.find((c) => c.userData.type === "sun");
     if (earthObj && moonObj) {
@@ -378,6 +428,7 @@ const updateSceneAtT = (t) => {
       const span = moonObj.userData.span || Math.PI;
       const zScale = moonObj.userData.zScale || 0.6;
       const angle = start + t * span;
+
       moonObj.position.x = earthObj.position.x + Math.cos(angle) * radius;
       moonObj.position.z =
         earthObj.position.z + Math.sin(angle) * radius * zScale;
@@ -405,7 +456,7 @@ const updateSceneAtT = (t) => {
     }
   } else if (currentScene.logic === "day-night") {
     const earthObj = entityGroup.children.find(
-      (c) => c.userData.type === "earth"
+      (c) => c.userData.type === "earth",
     );
     if (earthObj) {
       const spinGroup = earthObj.getObjectByName("SpinGroup");
@@ -418,7 +469,7 @@ const updateSceneAtT = (t) => {
     }
   } else if (currentScene.logic === "seasons-tilt") {
     const earthObj = entityGroup.children.find(
-      (c) => c.userData.type === "earth"
+      (c) => c.userData.type === "earth",
     );
     if (earthObj) {
       const axisTilt = earthObj.getObjectByName("AxisTilt");
@@ -458,7 +509,7 @@ const createObject = (conf) => {
 
       const spriteMat = new THREE.SpriteMaterial({
         map: new THREE.TextureLoader().load(
-          "https://threejs.org/examples/textures/sprites/glow.png"
+          "https://threejs.org/examples/textures/sprites/glow.png",
         ),
         color: 0xffdd88,
         transparent: true,
@@ -472,7 +523,7 @@ const createObject = (conf) => {
         0xfff0cc,
         2.0 * Math.max(1, conf.size),
         250,
-        2
+        2,
       );
       pLight.position.set(0, 0, 0);
       pLight.castShadow = true;
@@ -481,7 +532,7 @@ const createObject = (conf) => {
 
       const dirLight = new THREE.DirectionalLight(
         0xffffff,
-        1.2 * Math.max(1, conf.size)
+        1.2 * Math.max(1, conf.size),
       );
       dirLight.castShadow = true;
       dirLight.shadow.mapSize.width = 2048;
@@ -518,7 +569,7 @@ const createObject = (conf) => {
         model.position.set(
           -center.x * scale,
           -center.y * scale,
-          -center.z * scale
+          -center.z * scale,
         );
 
         model.traverse((c) => {
@@ -563,7 +614,7 @@ const createObject = (conf) => {
         const geo = new THREE.SphereGeometry(conf.size, 32, 32);
         const mat = new THREE.MeshStandardMaterial({ color: 0x888888 });
         wrapper.add(new THREE.Mesh(geo, mat));
-      }
+      },
     );
   }
   entityGroup.add(wrapper);
@@ -576,7 +627,7 @@ const createStarfield = () => {
     pos.push(
       (Math.random() - 0.5) * 800,
       (Math.random() - 0.5) * 800,
-      -100 + Math.random() * 50
+      -100 + Math.random() * 50,
     );
   }
   geo.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3));
@@ -639,25 +690,6 @@ const prevScene = () => {
   isSpeaking.value = false;
 };
 
-// --- RESPONSIVE HANDLER (REVISI) ---
-const onResize = () => {
-  if (!camera || !renderer) return;
-  const w = window.innerWidth;
-  const h = window.innerHeight;
-  const aspect = w / h;
-
-  camera.aspect = aspect;
-  camera.updateProjectionMatrix();
-
-  renderer.setSize(w, h);
-  composer.setSize(w, h);
-
-  // Update posisi kamera saat resize
-  if (scenes[activeIndex.value]) {
-    updateCameraResponsive(scenes[activeIndex.value].camPos.z, 0);
-  }
-};
-
 const goBack = () => {
   stopAR();
   try {
@@ -689,6 +721,7 @@ const goToLeaderboard = () => {
 onMounted(() => {
   initThree();
 
+  // Audio Check
   try {
     speechAvailable.value = speech.isAvailable();
     if (speechAvailable.value) {
@@ -787,7 +820,7 @@ onUnmounted(() => {
 
 <template>
   <div
-    class="relative w-full min-h-screen bg-black overflow-x-hidden font-sans text-white select-none"
+    class="relative w-full h-[100dvh] bg-black overflow-hidden font-sans text-white select-none"
   >
     <video
       ref="videoRef"
@@ -805,7 +838,7 @@ onUnmounted(() => {
     ></canvas>
 
     <div
-      class="relative z-20 pointer-events-none flex flex-col justify-between min-h-screen p-6 md:p-10"
+      class="relative z-20 pointer-events-none flex flex-col justify-between h-full p-6 md:p-10"
     >
       <div class="pointer-events-auto max-w-xl animate-fade-in-down">
         <div
@@ -848,7 +881,8 @@ onUnmounted(() => {
       </div>
 
       <div
-        class="w-full flex flex-col items-center gap-2 animate-fade-in-up md:gap-4 relative z-50 mb-2 md:mb-0"
+        class="w-full flex flex-col items-center gap-2 animate-fade-in-up md:gap-4 relative z-50 mb-10 md:mb-0"
+        style="padding-bottom: env(safe-area-inset-bottom)"
       >
         <button
           v-if="!isARMode"
@@ -1077,10 +1111,6 @@ video {
 
 canvas {
   z-index: 5;
-}
-
-.overlay-ui {
-  z-index: 10;
 }
 
 .slider-input::-webkit-slider-thumb {
