@@ -10,6 +10,20 @@ import gsap from "gsap";
 const router = useRouter();
 const containerRef = ref(null);
 
+// Navigation helper
+const isNavigating = ref(false);
+const goToPanduan = () => {
+  if (isNavigating.value) return;
+  isNavigating.value = true;
+
+  try {
+    window.location.href = "/panduan-penggunaan.html";
+  } catch (error) {
+    console.error("Navigation error:", error);
+    isNavigating.value = false;
+  }
+};
+
 // --- DATA: THE CRYSTAL NEXUS NODES ---
 const nodes = [
   {
@@ -131,7 +145,7 @@ const init = () => {
     new THREE.Vector2(w, h),
     1.5,
     0.4,
-    0.85
+    0.85,
   );
   bloomPass.strength = 0.8;
   bloomPass.radius = 0.5;
@@ -450,12 +464,20 @@ const current = computed(() => nodes[activeIndex.value]);
           </h1>
         </div>
 
-        <button
-          @click="router.push('/')"
-          class="px-4 py-2 hover:bg-white/5 border border-white/20 hover:border-cyan-400/50 rounded-lg text-white text-[10px] md:text-xs font-bold tracking-widest transition-all active:scale-95 flex items-center gap-2"
-        >
-          <span>←</span> HOME
-        </button>
+        <div class="flex gap-2 md:gap-3">
+          <button
+            @click="goToPanduan"
+            class="px-3 md:px-4 py-2 hover:bg-white/5 border border-white/20 hover:border-cyan-400/50 rounded-lg text-white text-[10px] md:text-xs font-bold tracking-widest transition-all active:scale-95 flex items-center gap-2 pointer-events-auto"
+          >
+            <span class="text-cyan-400 text-xs md:text-sm">📖</span> PANDUAN
+          </button>
+          <button
+            @click="router.push('/')"
+            class="px-3 md:px-4 py-2 hover:bg-white/5 border border-white/20 hover:border-cyan-400/50 rounded-lg text-white text-[10px] md:text-xs font-bold tracking-widest transition-all active:scale-95 flex items-center gap-2 pointer-events-auto"
+          >
+            <span>←</span> HOME
+          </button>
+        </div>
       </div>
 
       <div

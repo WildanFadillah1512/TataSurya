@@ -1,0 +1,1741 @@
+<!doctype html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Panduan Penggunaan · AstroLearn Interactive 3D System</title>
+    <meta
+      name="description"
+      content="Panduan lengkap penggunaan media pembelajaran interaktif AstroLearn – sistem tata surya 3D berbasis web untuk eksplorasi planet, fenomena alam, dan permainan edukatif."
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600&display=swap"
+      rel="stylesheet"
+    />
+
+    <style>
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      :root {
+        --clr-bg: #03020d;
+        --clr-surface: #0a0920;
+        --clr-card: #0d0c24;
+        --clr-border: rgba(100, 120, 255, 0.18);
+        --clr-cyan: #22d3ee;
+        --clr-purple: #a855f7;
+        --clr-amber: #fbbf24;
+        --clr-red: #ef4444;
+        --clr-green: #4ade80;
+        --clr-text: #e2e8f0;
+        --clr-muted: rgba(226, 232, 240, 0.5);
+        --radius: 12px;
+        --radius-lg: 20px;
+      }
+
+      html {
+        scroll-behavior: smooth;
+      }
+
+      body {
+        background: var(--clr-bg);
+        color: var(--clr-text);
+        font-family: "Inter", "Rajdhani", sans-serif;
+        line-height: 1.7;
+        min-height: 100vh;
+        overflow-x: hidden;
+      }
+
+      body::before {
+        content: "";
+        position: fixed;
+        inset: 0;
+        background-image:
+          radial-gradient(
+            1px 1px at 10% 20%,
+            rgba(255, 255, 255, 0.6) 0%,
+            transparent 100%
+          ),
+          radial-gradient(
+            1px 1px at 30% 60%,
+            rgba(255, 255, 255, 0.4) 0%,
+            transparent 100%
+          ),
+          radial-gradient(
+            1px 1px at 55% 10%,
+            rgba(255, 255, 255, 0.5) 0%,
+            transparent 100%
+          ),
+          radial-gradient(
+            1px 1px at 70% 80%,
+            rgba(255, 255, 255, 0.3) 0%,
+            transparent 100%
+          ),
+          radial-gradient(
+            1px 1px at 85% 35%,
+            rgba(255, 255, 255, 0.6) 0%,
+            transparent 100%
+          ),
+          radial-gradient(
+            1px 1px at 20% 90%,
+            rgba(255, 255, 255, 0.4) 0%,
+            transparent 100%
+          ),
+          radial-gradient(
+            1px 1px at 42% 45%,
+            rgba(200, 200, 255, 0.5) 0%,
+            transparent 100%
+          ),
+          radial-gradient(
+            1px 1px at 92% 65%,
+            rgba(255, 255, 255, 0.3) 0%,
+            transparent 100%
+          ),
+          radial-gradient(
+            2px 2px at 60% 55%,
+            rgba(150, 200, 255, 0.4) 0%,
+            transparent 100%
+          ),
+          radial-gradient(
+            1px 1px at 78% 15%,
+            rgba(255, 255, 255, 0.5) 0%,
+            transparent 100%
+          );
+        pointer-events: none;
+        z-index: 0;
+      }
+
+      .wrapper {
+        position: relative;
+        z-index: 1;
+        max-width: 960px;
+        margin: 0 auto;
+        padding: 0 1.5rem 5rem;
+      }
+
+      .hero {
+        text-align: center;
+        padding: 5rem 1rem 4rem;
+        position: relative;
+        z-index: 1;
+      }
+
+      .hero-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        background: rgba(34, 211, 238, 0.1);
+        border: 1px solid rgba(34, 211, 238, 0.3);
+        border-radius: 999px;
+        padding: 0.35rem 1rem;
+        font-family: "Orbitron", sans-serif;
+        font-size: 0.65rem;
+        letter-spacing: 0.2em;
+        color: var(--clr-cyan);
+        margin-bottom: 1.5rem;
+      }
+
+      .hero-badge::before {
+        content: "";
+        display: inline-block;
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: var(--clr-cyan);
+        animation: pulse-dot 2s infinite;
+      }
+
+      @keyframes pulse-dot {
+        0%,
+        100% {
+          opacity: 1;
+        }
+        50% {
+          opacity: 0.3;
+        }
+      }
+
+      .hero h1 {
+        font-family: "Orbitron", sans-serif;
+        font-size: clamp(2.5rem, 8vw, 5rem);
+        font-weight: 900;
+        letter-spacing: 0.08em;
+        background: linear-gradient(
+          135deg,
+          #fff 0%,
+          #a5f3fc 40%,
+          #818cf8 80%,
+          #c084fc 100%
+        );
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        line-height: 1.1;
+        margin-bottom: 0.5rem;
+      }
+
+      .hero-sub {
+        font-family: "Rajdhani", sans-serif;
+        font-size: 1rem;
+        letter-spacing: 0.35em;
+        color: var(--clr-muted);
+        text-transform: uppercase;
+        margin-bottom: 1.5rem;
+      }
+
+      .hero-desc {
+        max-width: 580px;
+        margin: 0 auto;
+        font-size: 1.05rem;
+        color: rgba(226, 232, 240, 0.75);
+        line-height: 1.8;
+      }
+
+      .toc {
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid var(--clr-border);
+        border-radius: var(--radius-lg);
+        padding: 1.75rem 2rem;
+        margin-bottom: 3.5rem;
+        backdrop-filter: blur(10px);
+      }
+
+      .toc-title {
+        font-family: "Orbitron", sans-serif;
+        font-size: 0.65rem;
+        letter-spacing: 0.3em;
+        color: var(--clr-cyan);
+        margin-bottom: 1rem;
+        text-transform: uppercase;
+      }
+
+      .toc-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+        gap: 0.5rem;
+      }
+
+      .toc-item {
+        display: flex;
+        align-items: center;
+        gap: 0.6rem;
+        padding: 0.5rem 0.75rem;
+        border-radius: 8px;
+        text-decoration: none;
+        color: rgba(226, 232, 240, 0.7);
+        font-size: 0.875rem;
+        transition: all 0.2s;
+        border: 1px solid transparent;
+      }
+
+      .toc-item:hover {
+        background: rgba(34, 211, 238, 0.07);
+        border-color: rgba(34, 211, 238, 0.2);
+        color: var(--clr-cyan);
+      }
+
+      .toc-num {
+        font-family: "Orbitron", sans-serif;
+        font-size: 0.6rem;
+        color: var(--clr-cyan);
+        opacity: 0.7;
+        min-width: 1.5rem;
+      }
+
+      .section {
+        margin-bottom: 4rem;
+      }
+
+      .section-header {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        margin-bottom: 1.75rem;
+      }
+
+      .section-icon {
+        width: 44px;
+        height: 44px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.4rem;
+        flex-shrink: 0;
+      }
+
+      .icon-cyan {
+        background: rgba(34, 211, 238, 0.12);
+        border: 1px solid rgba(34, 211, 238, 0.25);
+      }
+      .icon-purple {
+        background: rgba(168, 85, 247, 0.12);
+        border: 1px solid rgba(168, 85, 247, 0.25);
+      }
+      .icon-amber {
+        background: rgba(251, 191, 36, 0.12);
+        border: 1px solid rgba(251, 191, 36, 0.25);
+      }
+      .icon-red {
+        background: rgba(239, 68, 68, 0.12);
+        border: 1px solid rgba(239, 68, 68, 0.25);
+      }
+      .icon-green {
+        background: rgba(74, 222, 128, 0.12);
+        border: 1px solid rgba(74, 222, 128, 0.25);
+      }
+
+      .section-title {
+        font-family: "Orbitron", sans-serif;
+        font-size: clamp(1.1rem, 3vw, 1.5rem);
+        font-weight: 700;
+        letter-spacing: 0.06em;
+        color: #fff;
+      }
+
+      .section-tag {
+        font-family: "Rajdhani", sans-serif;
+        font-size: 0.7rem;
+        letter-spacing: 0.25em;
+        color: var(--clr-muted);
+        text-transform: uppercase;
+      }
+
+      .divider {
+        height: 1px;
+        background: linear-gradient(
+          90deg,
+          transparent,
+          var(--clr-border),
+          transparent
+        );
+        margin: 3.5rem 0;
+      }
+
+      .steps {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+      }
+
+      .step-card {
+        display: flex;
+        gap: 1.25rem;
+        background: rgba(255, 255, 255, 0.025);
+        border: 1px solid var(--clr-border);
+        border-radius: var(--radius);
+        padding: 1.25rem 1.5rem;
+        transition:
+          border-color 0.25s,
+          background 0.25s;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .step-card::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 1px;
+        background: linear-gradient(
+          90deg,
+          transparent,
+          rgba(34, 211, 238, 0.3),
+          transparent
+        );
+      }
+
+      .step-card:hover {
+        border-color: rgba(34, 211, 238, 0.3);
+        background: rgba(34, 211, 238, 0.03);
+      }
+
+      .step-num {
+        font-family: "Orbitron", sans-serif;
+        font-size: 1.1rem;
+        font-weight: 900;
+        min-width: 36px;
+        height: 36px;
+        border-radius: 8px;
+        background: rgba(34, 211, 238, 0.1);
+        border: 1px solid rgba(34, 211, 238, 0.25);
+        color: var(--clr-cyan);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        margin-top: 0.1rem;
+      }
+
+      .step-body h3 {
+        font-size: 0.95rem;
+        font-weight: 600;
+        margin-bottom: 0.3rem;
+        color: #fff;
+      }
+
+      .step-body p {
+        font-size: 0.875rem;
+        color: var(--clr-muted);
+        line-height: 1.65;
+      }
+
+      .feature-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(270px, 1fr));
+        gap: 1.25rem;
+      }
+
+      .feature-card {
+        background: rgba(255, 255, 255, 0.025);
+        border: 1px solid var(--clr-border);
+        border-radius: var(--radius-lg);
+        padding: 1.5rem;
+        transition:
+          transform 0.25s,
+          border-color 0.25s,
+          box-shadow 0.25s;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .feature-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+      }
+      .feature-card.clr-cyan:hover {
+        border-color: rgba(34, 211, 238, 0.4);
+        box-shadow: 0 8px 30px rgba(34, 211, 238, 0.1);
+      }
+      .feature-card.clr-amber:hover {
+        border-color: rgba(251, 191, 36, 0.4);
+        box-shadow: 0 8px 30px rgba(251, 191, 36, 0.1);
+      }
+      .feature-card.clr-red:hover {
+        border-color: rgba(239, 68, 68, 0.4);
+        box-shadow: 0 8px 30px rgba(239, 68, 68, 0.1);
+      }
+      .feature-card.clr-green:hover {
+        border-color: rgba(74, 222, 128, 0.4);
+        box-shadow: 0 8px 30px rgba(74, 222, 128, 0.1);
+      }
+      .feature-card.clr-purple:hover {
+        border-color: rgba(168, 85, 247, 0.4);
+        box-shadow: 0 8px 30px rgba(168, 85, 247, 0.1);
+      }
+
+      .feature-glow {
+        position: absolute;
+        top: -30px;
+        right: -30px;
+        width: 100px;
+        height: 100px;
+        border-radius: 50%;
+        filter: blur(40px);
+        opacity: 0.15;
+        pointer-events: none;
+      }
+
+      .clr-cyan .feature-glow {
+        background: #22d3ee;
+      }
+      .clr-amber .feature-glow {
+        background: #fbbf24;
+      }
+      .clr-red .feature-glow {
+        background: #ef4444;
+      }
+      .clr-green .feature-glow {
+        background: #4ade80;
+      }
+      .clr-purple .feature-glow {
+        background: #a855f7;
+      }
+
+      .feature-emoji {
+        font-size: 2rem;
+        margin-bottom: 0.75rem;
+        display: block;
+      }
+
+      .feature-label {
+        font-family: "Orbitron", sans-serif;
+        font-size: 0.6rem;
+        letter-spacing: 0.2em;
+        text-transform: uppercase;
+        margin-bottom: 0.3rem;
+      }
+
+      .clr-cyan .feature-label {
+        color: var(--clr-cyan);
+      }
+      .clr-amber .feature-label {
+        color: var(--clr-amber);
+      }
+      .clr-red .feature-label {
+        color: var(--clr-red);
+      }
+      .clr-green .feature-label {
+        color: var(--clr-green);
+      }
+      .clr-purple .feature-label {
+        color: var(--clr-purple);
+      }
+
+      .feature-card h3 {
+        font-size: 1rem;
+        font-weight: 700;
+        margin-bottom: 0.5rem;
+        color: #fff;
+      }
+      .feature-card p {
+        font-size: 0.82rem;
+        color: var(--clr-muted);
+        line-height: 1.65;
+      }
+
+      .planet-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+        gap: 0.75rem;
+      }
+
+      .planet-chip {
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid var(--clr-border);
+        border-radius: var(--radius);
+        padding: 0.85rem 1rem;
+        text-align: center;
+        transition: all 0.2s;
+      }
+
+      .planet-chip:hover {
+        background: rgba(34, 211, 238, 0.05);
+        border-color: rgba(34, 211, 238, 0.3);
+        transform: scale(1.03);
+      }
+
+      .planet-chip .dot {
+        display: inline-block;
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        margin-bottom: 0.5rem;
+      }
+
+      .planet-chip .name {
+        font-family: "Orbitron", sans-serif;
+        font-size: 0.6rem;
+        letter-spacing: 0.15em;
+        display: block;
+        color: #e2e8f0;
+      }
+
+      .planet-chip .desc {
+        font-size: 0.7rem;
+        color: var(--clr-muted);
+        margin-top: 0.2rem;
+      }
+
+      .phenomena-list {
+        display: flex;
+        flex-direction: column;
+        gap: 0.85rem;
+      }
+
+      .phenomenon-item {
+        display: flex;
+        align-items: flex-start;
+        gap: 1rem;
+        background: rgba(255, 255, 255, 0.025);
+        border: 1px solid var(--clr-border);
+        border-radius: var(--radius);
+        padding: 1.1rem 1.4rem;
+        transition: all 0.2s;
+      }
+
+      .phenomenon-item:hover {
+        border-color: rgba(251, 191, 36, 0.3);
+        background: rgba(251, 191, 36, 0.03);
+      }
+
+      .ph-icon {
+        font-size: 1.5rem;
+        min-width: 32px;
+        margin-top: 0.1rem;
+      }
+      .ph-title {
+        font-weight: 600;
+        font-size: 0.95rem;
+        margin-bottom: 0.2rem;
+      }
+      .ph-desc {
+        font-size: 0.82rem;
+        color: var(--clr-muted);
+      }
+
+      .game-cards {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        gap: 1.25rem;
+      }
+
+      .game-card {
+        background: rgba(255, 255, 255, 0.025);
+        border: 1px solid var(--clr-border);
+        border-radius: var(--radius-lg);
+        padding: 1.5rem;
+        position: relative;
+        overflow: hidden;
+        transition: all 0.25s;
+      }
+
+      .game-card:hover {
+        transform: translateY(-4px);
+      }
+
+      .game-badge {
+        font-family: "Orbitron", sans-serif;
+        font-size: 0.55rem;
+        letter-spacing: 0.2em;
+        padding: 0.25rem 0.75rem;
+        border-radius: 999px;
+        display: inline-block;
+        margin-bottom: 0.75rem;
+      }
+
+      .badge-purple {
+        background: rgba(168, 85, 247, 0.15);
+        color: #c084fc;
+        border: 1px solid rgba(168, 85, 247, 0.3);
+      }
+      .badge-cyan {
+        background: rgba(34, 211, 238, 0.15);
+        color: #67e8f9;
+        border: 1px solid rgba(34, 211, 238, 0.3);
+      }
+      .badge-red {
+        background: rgba(239, 68, 68, 0.15);
+        color: #fca5a5;
+        border: 1px solid rgba(239, 68, 68, 0.3);
+      }
+
+      .game-card h3 {
+        font-family: "Orbitron", sans-serif;
+        font-size: 0.9rem;
+        font-weight: 700;
+        letter-spacing: 0.06em;
+        margin-bottom: 0.5rem;
+      }
+
+      .game-card p {
+        font-size: 0.82rem;
+        color: var(--clr-muted);
+        line-height: 1.65;
+        margin-bottom: 0.85rem;
+      }
+      .game-tag {
+        font-family: "Rajdhani", sans-serif;
+        font-size: 0.7rem;
+        letter-spacing: 0.15em;
+        color: var(--clr-muted);
+        text-transform: uppercase;
+      }
+
+      .ctrl-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.875rem;
+      }
+
+      .ctrl-table th {
+        font-family: "Orbitron", sans-serif;
+        font-size: 0.6rem;
+        letter-spacing: 0.2em;
+        text-transform: uppercase;
+        color: var(--clr-cyan);
+        text-align: left;
+        padding: 0.75rem 1rem;
+        border-bottom: 1px solid var(--clr-border);
+      }
+
+      .ctrl-table td {
+        padding: 0.9rem 1rem;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+        vertical-align: middle;
+      }
+      .ctrl-table tr:hover td {
+        background: rgba(34, 211, 238, 0.03);
+      }
+      .ctrl-table tr:last-child td {
+        border-bottom: none;
+      }
+
+      .kbd {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.3rem;
+        flex-wrap: wrap;
+      }
+
+      .key {
+        display: inline-block;
+        background: rgba(255, 255, 255, 0.06);
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        border-bottom: 2px solid rgba(255, 255, 255, 0.08);
+        border-radius: 5px;
+        padding: 0.15rem 0.55rem;
+        font-family: "Orbitron", sans-serif;
+        font-size: 0.6rem;
+        letter-spacing: 0.05em;
+        color: #e2e8f0;
+      }
+
+      .tip-box {
+        display: flex;
+        gap: 1rem;
+        background: rgba(74, 222, 128, 0.05);
+        border: 1px solid rgba(74, 222, 128, 0.2);
+        border-radius: var(--radius);
+        padding: 1.1rem 1.4rem;
+        margin: 1.5rem 0;
+      }
+
+      .tip-box .tip-icon {
+        font-size: 1.25rem;
+        flex-shrink: 0;
+        margin-top: 0.05rem;
+      }
+      .tip-box p {
+        font-size: 0.875rem;
+        color: rgba(74, 222, 128, 0.9);
+        line-height: 1.6;
+      }
+
+      .warn-box {
+        display: flex;
+        gap: 1rem;
+        background: rgba(251, 191, 36, 0.05);
+        border: 1px solid rgba(251, 191, 36, 0.2);
+        border-radius: var(--radius);
+        padding: 1.1rem 1.4rem;
+        margin: 1.5rem 0;
+      }
+
+      .warn-box p {
+        font-size: 0.875rem;
+        color: rgba(251, 191, 36, 0.9);
+        line-height: 1.6;
+      }
+
+      .faq-list {
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+      }
+
+      .faq-item {
+        background: rgba(255, 255, 255, 0.025);
+        border: 1px solid var(--clr-border);
+        border-radius: var(--radius);
+        overflow: hidden;
+      }
+
+      .faq-q {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 1rem 1.4rem;
+        cursor: pointer;
+        font-weight: 600;
+        font-size: 0.9rem;
+        gap: 1rem;
+        user-select: none;
+        transition: background 0.2s;
+      }
+
+      .faq-q:hover {
+        background: rgba(34, 211, 238, 0.04);
+      }
+      .faq-q .arrow {
+        font-size: 0.75rem;
+        color: var(--clr-cyan);
+        transition: transform 0.25s;
+        flex-shrink: 0;
+      }
+
+      .faq-item input[type="checkbox"] {
+        display: none;
+      }
+      .faq-item input:checked ~ .faq-q .arrow {
+        transform: rotate(90deg);
+      }
+
+      .faq-a {
+        max-height: 0;
+        overflow: hidden;
+        transition: max-height 0.3s ease;
+        font-size: 0.87rem;
+        color: var(--clr-muted);
+        line-height: 1.7;
+      }
+      .faq-item input:checked ~ .faq-a {
+        max-height: 300px;
+      }
+      .faq-a-inner {
+        padding: 0 1.4rem 1.1rem;
+      }
+
+      .footer {
+        text-align: center;
+        padding: 3rem 1rem 2rem;
+        border-top: 1px solid var(--clr-border);
+        color: var(--clr-muted);
+        font-size: 0.8rem;
+        position: relative;
+        z-index: 1;
+      }
+
+      .footer .logo {
+        font-family: "Orbitron", sans-serif;
+        font-size: 1.1rem;
+        font-weight: 900;
+        letter-spacing: 0.2em;
+        color: #fff;
+        margin-bottom: 0.4rem;
+      }
+
+      @media (max-width: 600px) {
+        .wrapper {
+          padding: 0 1rem 4rem;
+        }
+        .feature-grid,
+        .game-cards {
+          grid-template-columns: 1fr;
+        }
+        .planet-grid {
+          grid-template-columns: repeat(2, 1fr);
+        }
+        .ctrl-table {
+          font-size: 0.8rem;
+        }
+        .ctrl-table th,
+        .ctrl-table td {
+          padding: 0.7rem 0.75rem;
+        }
+        .toc-grid {
+          grid-template-columns: 1fr 1fr;
+        }
+      }
+
+      .reveal {
+        opacity: 0;
+        transform: translateY(20px);
+        transition:
+          opacity 0.55s ease,
+          transform 0.55s ease;
+      }
+      .reveal.visible {
+        opacity: 1;
+        transform: none;
+      }
+
+      .back-button {
+        position: fixed;
+        top: 1.5rem;
+        right: 1.5rem;
+        z-index: 100;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.6rem;
+        padding: 0.6rem 1rem;
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        border-radius: 8px;
+        color: #e2e8f0;
+        font-family: "Rajdhani", sans-serif;
+        font-size: 0.85rem;
+        font-weight: 600;
+        letter-spacing: 0.05em;
+        cursor: pointer;
+        transition: all 0.2s;
+        text-decoration: none;
+      }
+      .back-button:hover {
+        background: rgba(255, 255, 255, 0.1);
+        border-color: rgba(34, 211, 238, 0.5);
+        color: #22d3ee;
+      }
+      .back-button:active {
+        transform: scale(0.95);
+      }
+      @media (max-width: 600px) {
+        .back-button {
+          top: 1rem;
+          right: 1rem;
+          padding: 0.5rem 0.75rem;
+          font-size: 0.75rem;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <button class="back-button" onclick="window.history.back()">
+      <span>←</span> KEMBALI
+    </button>
+    <div class="hero">
+      <div class="hero-badge">📡 ASTROLEARN · PANDUAN PENGGUNAAN</div>
+      <h1>AstroLearn</h1>
+      <p class="hero-sub">Interactive 3D System · Media Pembelajaran</p>
+      <p class="hero-desc">
+        Panduan lengkap penggunaan <strong>AstroLearn</strong> -> media
+        pembelajaran interaktif berbasis web untuk menjelajahi Tata Surya dalam
+        3D, memahami fenomena alam antariksa, dan bermain game edukatif.
+      </p>
+    </div>
+
+    <div class="wrapper">
+      <nav class="toc reveal">
+        <div class="toc-title">📋 Daftar Isi</div>
+        <div class="toc-grid">
+          <a href="#mulai" class="toc-item"
+            ><span class="toc-num">01</span> Cara Memulai</a
+          >
+          <a href="#fitur" class="toc-item"
+            ><span class="toc-num">02</span> Fitur Utama</a
+          >
+          <a href="#eksplorasi" class="toc-item"
+            ><span class="toc-num">03</span> Eksplorasi Planet</a
+          >
+          <a href="#fenomena" class="toc-item"
+            ><span class="toc-num">04</span> Fenomena Alam</a
+          >
+          <a href="#games" class="toc-item"
+            ><span class="toc-num">05</span> Simulasi &amp; Game</a
+          >
+          <a href="#leaderboard" class="toc-item"
+            ><span class="toc-num">06</span> Papan Peringkat</a
+          >
+          <a href="#kontrol" class="toc-item"
+            ><span class="toc-num">07</span> Kontrol &amp; Navigasi</a
+          >
+          <a href="#faq" class="toc-item"
+            ><span class="toc-num">08</span> FAQ</a
+          >
+        </div>
+      </nav>
+
+      <!-- 01 -->
+      <section class="section reveal" id="mulai">
+        <div class="section-header">
+          <div class="section-icon icon-cyan">🚀</div>
+          <div>
+            <div class="section-tag">Panduan 01</div>
+            <h2 class="section-title">Cara Memulai</h2>
+          </div>
+        </div>
+        <div class="steps">
+          <div class="step-card">
+            <div class="step-num">1</div>
+            <div class="step-body">
+              <h3>Buka Aplikasi &amp; Halaman Utama</h3>
+              <p>
+                Buka aplikasi AstroLearn di browser. Kamu akan disambut layar
+                hitam dengan latar bintang bertaburan dan logo
+                <strong>AstroLearn</strong> di sudut kiri atas.
+              </p>
+            </div>
+          </div>
+          <div class="step-card">
+            <div class="step-num">2</div>
+            <div class="step-body">
+              <h3>Tekan &amp; Tahan Tombol "HOLD TO START"</h3>
+              <p>
+                Di tengah layar terdapat tombol bulat besar bertuliskan
+                <strong>HOLD TO START</strong>. Tekan dan <em>tahan</em> tombol
+                tersebut hingga lingkaran progress penuh (100%). Bintang-bintang
+                akan bergerak semakin cepat menunjukkan efek warp.
+              </p>
+            </div>
+          </div>
+          <div class="step-card">
+            <div class="step-num">3</div>
+            <div class="step-body">
+              <h3>Status Sistem Berubah</h3>
+              <p>
+                Perhatikan teks status di bawah tombol. Status akan berubah dari
+                <code>SYSTEM_IDLE</code> → <code>SYNCING_NEURAL_FLOW</code> →
+                <code>JUMP_AUTHORIZED</code>. Setelah authorized, kamu otomatis
+                diarahkan ke menu utama.
+              </p>
+            </div>
+          </div>
+          <div class="step-card">
+            <div class="step-num">4</div>
+            <div class="step-body">
+              <h3>Pilih Sektor di Menu System Select</h3>
+              <p>
+                Di halaman <strong>System Select</strong>, terdapat 3 objek 3D
+                berputar dalam carousel. Gunakan tombol <strong>&lt;</strong> /
+                <strong>&gt;</strong>, scroll mouse, atau swipe untuk berpindah
+                antar sektor, lalu klik <strong>INITIALIZE LINK</strong> untuk
+                masuk.
+              </p>
+            </div>
+          </div>
+        </div>
+        <div class="tip-box" style="margin-top: 1.25rem">
+          <span class="tip-icon">💡</span>
+          <p>
+            Pada perangkat mobile, gunakan sentuhan untuk menahan tombol dan
+            swipe untuk navigasi menu. Semua fitur mendukung layar sentuh.
+          </p>
+        </div>
+      </section>
+
+      <div class="divider"></div>
+
+      <!-- 02 -->
+      <section class="section reveal" id="fitur">
+        <div class="section-header">
+          <div class="section-icon icon-purple">⚡</div>
+          <div>
+            <div class="section-tag">Panduan 02</div>
+            <h2 class="section-title">Tiga Sektor Utama</h2>
+          </div>
+        </div>
+        <div class="feature-grid">
+          <div class="feature-card clr-cyan">
+            <div class="feature-glow"></div>
+            <span class="feature-emoji">🔭</span>
+            <div class="feature-label">Sector 01</div>
+            <h3>EXPLORATION</h3>
+            <p>
+              Jelajahi model 3D tata surya interaktif. Klik planet mana saja
+              untuk melihat detail informasi, statistik, dan fakta unik tentang
+              setiap benda langit.
+            </p>
+          </div>
+          <div class="feature-card clr-amber">
+            <div class="feature-glow"></div>
+            <span class="feature-emoji">📚</span>
+            <div class="feature-label">Sector 09</div>
+            <h3>ARCHIVES</h3>
+            <p>
+              Saksikan simulasi 3D fenomena astronomi: Gerhana Matahari, Gerhana
+              Bulan, Pergantian Musim, Siang &amp; Malam, serta Hujan Komet
+              lengkap dengan narasi audio.
+            </p>
+          </div>
+          <div class="feature-card clr-red">
+            <div class="feature-glow"></div>
+            <span class="feature-emoji">🎮</span>
+            <div class="feature-label">Sector 99</div>
+            <h3>SIMULATION</h3>
+            <p>
+              Uji pengetahuan astronomimu lewat dua mode game:
+              <em>Space Mystery</em> (tebak nama planet) dan
+              <em>Astro Adventure</em> (pertarungan luar angkasa berbasis kuis).
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <div class="divider"></div>
+
+      <!-- 03 -->
+      <section class="section reveal" id="eksplorasi">
+        <div class="section-header">
+          <div class="section-icon icon-cyan">🌌</div>
+          <div>
+            <div class="section-tag">Panduan 03</div>
+            <h2 class="section-title">Eksplorasi Planet</h2>
+          </div>
+        </div>
+        <div class="steps" style="margin-bottom: 1.5rem">
+          <div class="step-card">
+            <div class="step-num">1</div>
+            <div class="step-body">
+              <h3>Masuk ke Sektor Exploration</h3>
+              <p>
+                Pilih sektor <strong>EXPLORATION</strong> dari menu, lalu klik
+                <em>INITIALIZE LINK</em>. Kamu akan masuk ke tampilan 3D tata
+                surya dengan Matahari di tengah dan planet-planet mengorbit.
+              </p>
+            </div>
+          </div>
+          <div class="step-card">
+            <div class="step-num">2</div>
+            <div class="step-body">
+              <h3>Navigasi Alam Semesta 3D</h3>
+              <p>
+                Gunakan <strong>klik kiri + drag</strong> untuk memutar
+                pandangan, <strong>scroll</strong> untuk zoom in/out, dan
+                <strong>klik kanan + drag</strong> untuk menggeser posisi kamera
+                (pan).
+              </p>
+            </div>
+          </div>
+          <div class="step-card">
+            <div class="step-num">3</div>
+            <div class="step-body">
+              <h3>Klik Planet untuk Detail Singkat</h3>
+              <p>
+                Klik objek planet mana saja. Kamera akan pindah mendekat dan
+                panel informasi muncul di sisi layar berisi nama, deskripsi, dan
+                fakta singkat.
+              </p>
+            </div>
+          </div>
+          <div class="step-card">
+            <div class="step-num">4</div>
+            <div class="step-body">
+              <h3>Buka Halaman Detail Planet</h3>
+              <p>
+                Di panel info, klik tombol <strong>"Lihat Detail"</strong> untuk
+                membuka halaman detail penuh dengan model 3D interaktif, tab
+                Gambaran Umum, Struktur, Atmosfer, Statistik, dan Fakta Unik.
+              </p>
+            </div>
+          </div>
+          <div class="step-card">
+            <div class="step-num">5</div>
+            <div class="step-body">
+              <h3>Ikuti Kuis di Halaman Detail</h3>
+              <p>
+                Di bagian bawah halaman detail, tersedia tombol
+                <strong>Mulai Misi Kuis</strong>. Masukkan nama astronautmu,
+                lalu jawab serangkaian pertanyaan untuk mendapatkan skor dan
+                masuk ke papan peringkat.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <h3
+          style="
+            font-size: 0.85rem;
+            letter-spacing: 0.1em;
+            color: var(--clr-muted);
+            text-transform: uppercase;
+            margin-bottom: 1rem;
+          "
+        >
+          Objek Langit yang Tersedia
+        </h3>
+        <div class="planet-grid">
+          <div class="planet-chip">
+            <span class="dot" style="background: #fdb813"></span
+            ><span class="name">MATAHARI</span>
+            <div class="desc">Pusat Energi</div>
+          </div>
+          <div class="planet-chip">
+            <span class="dot" style="background: #a5a5a5"></span
+            ><span class="name">MERKURIUS</span>
+            <div class="desc">Si Kecil Gesit</div>
+          </div>
+          <div class="planet-chip">
+            <span class="dot" style="background: #e3bb76"></span
+            ><span class="name">VENUS</span>
+            <div class="desc">Bintang Kejora</div>
+          </div>
+          <div class="planet-chip">
+            <span class="dot" style="background: #4b9cd3"></span
+            ><span class="name">BUMI</span>
+            <div class="desc">Rumah Kita</div>
+          </div>
+          <div class="planet-chip">
+            <span class="dot" style="background: #b0c4de"></span
+            ><span class="name">BULAN</span>
+            <div class="desc">Satelit Bumi</div>
+          </div>
+          <div class="planet-chip">
+            <span class="dot" style="background: #c1440e"></span
+            ><span class="name">MARS</span>
+            <div class="desc">Planet Merah</div>
+          </div>
+          <div class="planet-chip">
+            <span class="dot" style="background: #c88b3a"></span
+            ><span class="name">JUPITER</span>
+            <div class="desc">Gas Raksasa</div>
+          </div>
+          <div class="planet-chip">
+            <span class="dot" style="background: #ead6a8"></span
+            ><span class="name">SATURNUS</span>
+            <div class="desc">Sang Bercincin</div>
+          </div>
+          <div class="planet-chip">
+            <span class="dot" style="background: #7de8e8"></span
+            ><span class="name">URANUS</span>
+            <div class="desc">Planet Es Biru</div>
+          </div>
+          <div class="planet-chip">
+            <span class="dot" style="background: #5b7fff"></span
+            ><span class="name">NEPTUNUS</span>
+            <div class="desc">Planet Terjauh</div>
+          </div>
+        </div>
+        <div class="warn-box">
+          <span class="tip-icon">⚠️</span>
+          <p>
+            Model 3D planet menggunakan file <code>.glb</code> yang diunduh saat
+            halaman dimuat. Pastikan koneksi internet aktif agar model tampil
+            dengan benar.
+          </p>
+        </div>
+      </section>
+
+      <div class="divider"></div>
+
+      <!-- 04 -->
+      <section class="section reveal" id="fenomena">
+        <div class="section-header">
+          <div class="section-icon icon-amber">🌟</div>
+          <div>
+            <div class="section-tag">Panduan 04</div>
+            <h2 class="section-title">Fenomena Alam (Archives)</h2>
+          </div>
+        </div>
+        <div class="steps" style="margin-bottom: 1.5rem">
+          <div class="step-card">
+            <div class="step-num">1</div>
+            <div class="step-body">
+              <h3>Masuk ke Sektor Archives</h3>
+              <p>
+                Dari menu System Select, pilih <strong>ARCHIVES</strong> (Sector
+                09) dan klik <em>INITIALIZE LINK</em>.
+              </p>
+            </div>
+          </div>
+          <div class="step-card">
+            <div class="step-num">2</div>
+            <div class="step-body">
+              <h3>Pilih Fenomena</h3>
+              <p>
+                Gunakan tombol <strong>&lt;</strong> /
+                <strong>&gt;</strong> atau swipe untuk berpindah antar 5
+                fenomena yang tersedia.
+              </p>
+            </div>
+          </div>
+          <div class="step-card">
+            <div class="step-num">3</div>
+            <div class="step-body">
+              <h3>Interaksi dengan Slider</h3>
+              <p>
+                Untuk fenomena Gerhana dan Musim, geser
+                <strong>slider</strong> di bagian bawah untuk mengontrol posisi
+                atau rotasi objek langit secara real-time.
+              </p>
+            </div>
+          </div>
+          <div class="step-card">
+            <div class="step-num">4</div>
+            <div class="step-body">
+              <h3>Aktifkan Narasi Audio</h3>
+              <p>
+                Klik tombol <strong>🔊 Audio</strong> untuk mendengarkan
+                penjelasan fenomena menggunakan Text-to-Speech dalam Bahasa
+                Indonesia.
+              </p>
+            </div>
+          </div>
+          <div class="step-card">
+            <div class="step-num">5</div>
+            <div class="step-body">
+              <h3>Mode AR (Augmented Reality)</h3>
+              <p>
+                Klik tombol <strong>AR</strong> untuk mengaktifkan kamera
+                perangkatmu dan melihat simulasi ditampilkan di atas latar
+                kamera nyata.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <h3
+          style="
+            font-size: 0.85rem;
+            letter-spacing: 0.1em;
+            color: var(--clr-muted);
+            text-transform: uppercase;
+            margin-bottom: 1rem;
+          "
+        >
+          Lima Simulasi Fenomena
+        </h3>
+        <div class="phenomena-list">
+          <div class="phenomenon-item">
+            <span class="ph-icon">☀️</span>
+            <div>
+              <div class="ph-title">Gerhana Matahari</div>
+              <div class="ph-desc">
+                Geser slider untuk menggerakkan Bulan di antara Matahari dan
+                Bumi. Perhatikan bayangan Bulan yang jatuh ke permukaan Bumi.
+              </div>
+            </div>
+          </div>
+          <div class="phenomenon-item">
+            <span class="ph-icon">🌕</span>
+            <div>
+              <div class="ph-title">Gerhana Bulan</div>
+              <div class="ph-desc">
+                Bulan bergerak masuk ke bayangan Bumi (Umbra). Perhatikan Bulan
+                menjadi gelap saat tertutup sepenuhnya.
+              </div>
+            </div>
+          </div>
+          <div class="phenomenon-item">
+            <span class="ph-icon">🍂</span>
+            <div>
+              <div class="ph-title">Pergantian Musim</div>
+              <div class="ph-desc">
+                Visualisasi kemiringan sumbu Bumi 23,5° yang menyebabkan
+                pergantian musim. Slider mensimulasikan revolusi tahunan Bumi.
+              </div>
+            </div>
+          </div>
+          <div class="phenomenon-item">
+            <span class="ph-icon">🌅</span>
+            <div>
+              <div class="ph-title">Siang &amp; Malam</div>
+              <div class="ph-desc">
+                Rotasi harian Bumi pada porosnya. Perhatikan batas Terminator
+                (garis siang-malam) yang bergerak melintasi benua.
+              </div>
+            </div>
+          </div>
+          <div class="phenomenon-item">
+            <span class="ph-icon">☄️</span>
+            <div>
+              <div class="ph-title">Hujan Komet</div>
+              <div class="ph-desc">
+                Simulasi hujan meteor dengan 20 komet yang melintasi langit
+                dengan kecepatan dan posisi acak yang dramatis.
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <div class="divider"></div>
+
+      <!-- 05 -->
+      <section class="section reveal" id="games">
+        <div class="section-header">
+          <div class="section-icon icon-red">🎮</div>
+          <div>
+            <div class="section-tag">Panduan 05</div>
+            <h2 class="section-title">Simulasi &amp; Game</h2>
+          </div>
+        </div>
+        <p
+          style="
+            color: var(--clr-muted);
+            font-size: 0.9rem;
+            margin-bottom: 1.5rem;
+          "
+        >
+          Pilih <strong>SIMULATION</strong> dari menu untuk masuk ke Game Lobby.
+          Terdapat 2 game aktif dan 1 slot terkunci.
+        </p>
+        <div class="game-cards">
+          <div class="game-card">
+            <div
+              style="
+                position: absolute;
+                top: -20px;
+                right: -20px;
+                width: 80px;
+                height: 80px;
+                background: #a855f7;
+                border-radius: 50%;
+                filter: blur(35px);
+                opacity: 0.15;
+                pointer-events: none;
+              "
+            ></div>
+            <div class="game-badge badge-purple">PUZZLE DIMENSION</div>
+            <h3>🟣 SPACE MYSTERY</h3>
+            <p>
+              Tebak nama planet atau benda langit dari
+              <strong>model 3D</strong> yang ditampilkan. Susun huruf-huruf acak
+              menjadi jawaban yang benar. Tersedia 10 level dengan 3 nyawa dan 3
+              petunjuk (hint 💡).
+            </p>
+            <div>
+              <div class="game-tag" style="margin-bottom: 0.3rem">
+                Cara Main:
+              </div>
+              <div style="font-size: 0.82rem; color: var(--clr-muted)">
+                Lihat model 3D → Baca petunjuk → Klik huruf yang tersedia →
+                Susun jawaban → Konfirmasi → Level berikutnya.
+              </div>
+            </div>
+          </div>
+          <div class="game-card">
+            <div
+              style="
+                position: absolute;
+                top: -20px;
+                right: -20px;
+                width: 80px;
+                height: 80px;
+                background: #06b6d4;
+                border-radius: 50%;
+                filter: blur(35px);
+                opacity: 0.15;
+                pointer-events: none;
+              "
+            ></div>
+            <div class="game-badge badge-cyan">FLIGHT DIMENSION</div>
+            <h3>🔵 ASTRO ADVENTURE</h3>
+            <p>
+              Pertarungan luar angkasa berbasis kuis! Kendalikan pesawat, tembak
+              musuh, dan kalahkan mereka hanya dengan menjawab pertanyaan
+              astronomi dengan benar untuk menambah skor.
+            </p>
+            <div>
+              <div class="game-tag" style="margin-bottom: 0.3rem">
+                Cara Main:
+              </div>
+              <div style="font-size: 0.82rem; color: var(--clr-muted)">
+                Gerakkan pesawat (Mouse/Touch) → Tembak musuh → Jawab kuis →
+                Kumpulkan skor → Masuk Leaderboard.
+              </div>
+            </div>
+          </div>
+          <div class="game-card" style="opacity: 0.5">
+            <div class="game-badge badge-red">RESTRICTED</div>
+            <h3>🔴 CLASSIFIED</h3>
+            <p>
+              Dimensi ini terkunci. Containment Field masih aktif. Tunggu
+              pembaruan berikutnya untuk membuka akses.
+            </p>
+            <div class="game-tag">Status: TERKUNCI 🔒</div>
+          </div>
+        </div>
+        <div class="tip-box" style="margin-top: 1.5rem">
+          <span class="tip-icon">🏆</span>
+          <p>
+            Skor game akan tersimpan ke <strong>Papan Peringkat</strong> secara
+            otomatis setelah game selesai. Pastikan mengisi namamu agar
+            tercatat!
+          </p>
+        </div>
+      </section>
+
+      <div class="divider"></div>
+
+      <!-- 06 -->
+      <section class="section reveal" id="leaderboard">
+        <div class="section-header">
+          <div class="section-icon icon-green">🏆</div>
+          <div>
+            <div class="section-tag">Panduan 06</div>
+            <h2 class="section-title">Papan Peringkat</h2>
+          </div>
+        </div>
+        <p
+          style="
+            color: var(--clr-muted);
+            font-size: 0.9rem;
+            margin-bottom: 1.25rem;
+          "
+        >
+          Papan peringkat menampilkan skor terbaik dari semua aktivitas di
+          AstroLearn. Akses dari menu atau otomatis diarahkan setelah game/kuis
+          selesai.
+        </p>
+        <div class="feature-grid">
+          <div class="feature-card clr-cyan">
+            <div class="feature-glow"></div>
+            <span class="feature-emoji">🪐</span>
+            <div class="feature-label">Kategori 1</div>
+            <h3>Planetary Missions</h3>
+            <p>
+              Skor dari kuis di halaman detail setiap planet -> Matahari,
+              Merkurius, Venus, Bumi, Bulan, Mars, Jupiter, Saturnus, Uranus,
+              dan Neptunus.
+            </p>
+          </div>
+          <div class="feature-card clr-amber">
+            <div class="feature-glow"></div>
+            <span class="feature-emoji">✨</span>
+            <div class="feature-label">Kategori 2</div>
+            <h3>Cosmic Phenomena</h3>
+            <p>
+              Skor dari kuis di halaman Archives -> Gerhana Matahari, Gerhana
+              Bulan, Musim, Siang &amp; Malam, serta Komet.
+            </p>
+          </div>
+          <div class="feature-card clr-purple">
+            <div class="feature-glow"></div>
+            <span class="feature-emoji">🕹️</span>
+            <div class="feature-label">Kategori 3</div>
+            <h3>Arcade Games</h3>
+            <p>
+              Skor dari game Space Mystery dan Astro Adventure. Bersaing dengan
+              pemain lain untuk mendapatkan posisi tertinggi.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <div class="divider"></div>
+
+      <!-- 07 -->
+      <section class="section reveal" id="kontrol">
+        <div class="section-header">
+          <div class="section-icon icon-purple">🎛️</div>
+          <div>
+            <div class="section-tag">Panduan 07</div>
+            <h2 class="section-title">Kontrol &amp; Navigasi</h2>
+          </div>
+        </div>
+        <div
+          style="
+            overflow-x: auto;
+            border-radius: var(--radius);
+            border: 1px solid var(--clr-border);
+            margin-bottom: 1.5rem;
+          "
+        >
+          <table class="ctrl-table">
+            <thead>
+              <tr>
+                <th>Aksi</th>
+                <th>Desktop (Mouse)</th>
+                <th>Mobile (Touch)</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Mulai Aplikasi</td>
+                <td><span class="key">KLIK + TAHAN</span> tombol tengah</td>
+                <td>Sentuh &amp; Tahan tombol</td>
+              </tr>
+              <tr>
+                <td>Ganti Menu</td>
+                <td>
+                  <span class="key">SCROLL</span> atau klik
+                  <span class="key">&lt;</span> <span class="key">&gt;</span>
+                </td>
+                <td>Swipe kiri/kanan</td>
+              </tr>
+              <tr>
+                <td>Pilih Menu</td>
+                <td>Klik <span class="key">INITIALIZE LINK</span></td>
+                <td>Tap <span class="key">INITIALIZE LINK</span></td>
+              </tr>
+              <tr>
+                <td>Putar Pandangan 3D</td>
+                <td><span class="key">KLIK KIRI</span> + Drag</td>
+                <td>1 jari drag</td>
+              </tr>
+              <tr>
+                <td>Zoom In / Out</td>
+                <td><span class="key">SCROLL</span></td>
+                <td>Pinch 2 jari</td>
+              </tr>
+              <tr>
+                <td>Geser Kamera</td>
+                <td><span class="key">KLIK KANAN</span> + Drag</td>
+                <td>2 jari drag</td>
+              </tr>
+              <tr>
+                <td>Klik Planet</td>
+                <td><span class="key">KLIK KIRI</span> pada planet</td>
+                <td>Tap pada planet</td>
+              </tr>
+              <tr>
+                <td>Kontrol Slider Fenomena</td>
+                <td>Drag slider</td>
+                <td>Drag slider</td>
+              </tr>
+              <tr>
+                <td>Gerakkan Pesawat (Game 2)</td>
+                <td>Gerak Mouse</td>
+                <td>Drag jari</td>
+              </tr>
+              <tr>
+                <td>Tembak Laser (Game 2)</td>
+                <td><span class="key">KLIK KIRI</span></td>
+                <td>Tap</td>
+              </tr>
+              <tr>
+                <td>Kembali ke Menu</td>
+                <td>Klik tombol <span class="key">← HOME</span></td>
+                <td>Tap tombol kembali</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="warn-box">
+          <span class="tip-icon">⚠️</span>
+          <p>
+            Saat menggunakan mode AR, izinkan akses kamera browser saat diminta.
+            Jika ditolak, mode AR tidak akan berfungsi.
+          </p>
+        </div>
+      </section>
+
+      <div class="divider"></div>
+
+      <!-- 08 -->
+      <section class="section reveal" id="faq">
+        <div class="section-header">
+          <div class="section-icon icon-green">❓</div>
+          <div>
+            <div class="section-tag">Panduan 08</div>
+            <h2 class="section-title">Pertanyaan Umum (FAQ)</h2>
+          </div>
+        </div>
+        <div class="faq-list">
+          <div class="faq-item">
+            <input type="checkbox" id="faq1" />
+            <label class="faq-q" for="faq1"
+              ><span
+                >Planet/model 3D tidak muncul, apa yang harus dilakukan?</span
+              ><span class="arrow">▶</span></label
+            >
+            <div class="faq-a">
+              <div class="faq-a-inner">
+                Model 3D dimuat dari file <code>.glb</code> yang memerlukan
+                koneksi internet. Pastikan internetmu aktif dan coba refresh
+                halaman. Jika masih bermasalah, coba gunakan browser terbaru
+                seperti Chrome atau Firefox.
+              </div>
+            </div>
+          </div>
+          <div class="faq-item">
+            <input type="checkbox" id="faq2" />
+            <label class="faq-q" for="faq2"
+              ><span>Narasi audio tidak keluar saat klik tombol audio</span
+              ><span class="arrow">▶</span></label
+            >
+            <div class="faq-a">
+              <div class="faq-a-inner">
+                Fitur audio menggunakan Web Speech API. Pastikan browser
+                mendukung fitur ini (Chrome/Edge direkomendasikan). Jika muncul
+                pesan "Tidak ada suara terdeteksi", coba izinkan browser
+                mengakses sistem suara atau periksa pengaturan suara
+                perangkatmu.
+              </div>
+            </div>
+          </div>
+          <div class="faq-item">
+            <input type="checkbox" id="faq3" />
+            <label class="faq-q" for="faq3"
+              ><span>Performa lambat / animasi terasa berat</span
+              ><span class="arrow">▶</span></label
+            >
+            <div class="faq-a">
+              <div class="faq-a-inner">
+                AstroLearn menggunakan rendering 3D berbasis WebGL yang
+                memerlukan GPU memadai. Pada perangkat mobile atau PC lama,
+                performa otomatis dikurangi. Tutup tab browser lain, gunakan
+                Chrome terbaru, dan pastikan tidak ada aplikasi berat yang
+                berjalan bersamaan.
+              </div>
+            </div>
+          </div>
+          <div class="faq-item">
+            <input type="checkbox" id="faq4" />
+            <label class="faq-q" for="faq4"
+              ><span>Mode AR tidak bisa diaktifkan</span
+              ><span class="arrow">▶</span></label
+            >
+            <div class="faq-a">
+              <div class="faq-a-inner">
+                Mode AR memerlukan akses kamera. Pastikan kamu mengizinkan akses
+                kamera di browser saat pertama kali diminta. Jika sudah ditolak,
+                buka pengaturan browser dan ubah izin kamera untuk situs ini
+                menjadi "Allow/Izinkan".
+              </div>
+            </div>
+          </div>
+          <div class="faq-item">
+            <input type="checkbox" id="faq5" />
+            <label class="faq-q" for="faq5"
+              ><span>Skor saya tidak tersimpan di leaderboard</span
+              ><span class="arrow">▶</span></label
+            >
+            <div class="faq-a">
+              <div class="faq-a-inner">
+                Pastikan kamu memasukkan nama di layar identifikasi sebelum
+                memulai kuis atau game. Skor hanya tersimpan jika nama diisi.
+                Jika masalah berlanjut, periksa koneksi internet karena
+                leaderboard disinkronkan ke server.
+              </div>
+            </div>
+          </div>
+          <div class="faq-item">
+            <input type="checkbox" id="faq6" />
+            <label class="faq-q" for="faq6"
+              ><span>Tombol "HOLD TO START" tidak merespons di HP</span
+              ><span class="arrow">▶</span></label
+            >
+            <div class="faq-a">
+              <div class="faq-a-inner">
+                Pastikan kamu menekan dan menahan tombol, jangan hanya mengetuk.
+                Tombol ini dirancang dengan interaksi touchstart dan touchend.
+                Jika tidak merespons, coba refresh halaman dan gunakan Chrome
+                terbaru di HP-mu.
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <footer class="footer">
+      <div class="logo">ASTROLEARN</div>
+      <div
+        style="
+          font-size: 0.7rem;
+          letter-spacing: 0.2em;
+          text-transform: uppercase;
+          color: rgba(226, 232, 240, 0.3);
+          margin-bottom: 0.5rem;
+        "
+      >
+        Interactive 3D System · Media Pembelajaran
+      </div>
+      <div
+        style="
+          margin-top: 0.3rem;
+          font-size: 0.75rem;
+          color: rgba(226, 232, 240, 0.25);
+        "
+      >
+        Dokumen panduan · 2026
+      </div>
+    </footer>
+
+    <script>
+      const reveals = document.querySelectorAll(".reveal");
+      const observer = new IntersectionObserver(
+        (entries) => {
+          entries.forEach((entry) => {
+            if (entry.isIntersecting) {
+              entry.target.classList.add("visible");
+              observer.unobserve(entry.target);
+            }
+          });
+        },
+        { threshold: 0.08 },
+      );
+      reveals.forEach((el) => observer.observe(el));
+    </script>
+  </body>
+</html>

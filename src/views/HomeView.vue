@@ -21,7 +21,7 @@ const initThree = () => {
     75,
     window.innerWidth / window.innerHeight,
     0.1,
-    1000
+    1000,
   );
   camera.position.z = 1;
 
@@ -39,12 +39,12 @@ const initThree = () => {
     vertices.push(
       Math.random() * 600 - 300,
       Math.random() * 600 - 300,
-      Math.random() * 600 - 300
+      Math.random() * 600 - 300,
     );
   }
   geometry.setAttribute(
     "position",
-    new THREE.Float32BufferAttribute(vertices, 3)
+    new THREE.Float32BufferAttribute(vertices, 3),
   );
   const material = new THREE.PointsMaterial({
     color: 0xffffff,
@@ -151,7 +151,7 @@ onUnmounted(() => {
           <h1
             class="text-2xl sm:text-3xl md:text-5xl font-extrabold tracking-[0.2em] italic"
           >
-            SOLARIS
+            ASTROLEARN
           </h1>
           <p
             class="text-[8px] sm:text-[10px] tracking-[0.3em] sm:tracking-[0.5em] text-white/40 uppercase"
@@ -236,8 +236,8 @@ onUnmounted(() => {
         <div
           class="max-w-xs text-[8px] sm:text-[9px] leading-relaxed text-white/40 uppercase tracking-widest"
         >
-          Authorized personnel only. Interaction with the Solaris core may cause
-          temporary temporal displacement.
+          Authorized personnel only. Interaction with the AstroLearn core may
+          cause temporary temporal displacement.
         </div>
         <div
           class="flex gap-3 sm:gap-4 md:gap-8 w-full sm:w-auto justify-start sm:justify-end"
